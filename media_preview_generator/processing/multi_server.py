@@ -72,6 +72,7 @@ from ..servers.plex_scheduled_jobs import (
     window_open,
     window_text,
 )
+from ..strm import StrmError, is_strm, media_input
 from . import plex_held_rereads
 from .frame_cache import get_frame_cache
 from .generator import (
@@ -196,7 +197,7 @@ _NON_MEDIA_EXTS: frozenset[str] = frozenset(
 
 # Video extensions the missing-source rebind scan looks at.
 _VIDEO_EXTS: frozenset[str] = frozenset(
-    {".mkv", ".mp4", ".m4v", ".mov", ".avi", ".ts", ".m2ts", ".wmv", ".webm", ".mpg", ".mpeg"}
+    {".mkv", ".mp4", ".m4v", ".mov", ".avi", ".ts", ".m2ts", ".wmv", ".webm", ".mpg", ".mpeg", ".strm"}
 )
 
 # Library kinds that hold movies: Plex's section METADATA_TYPE and Emby/Jellyfin's CollectionType.
@@ -1797,6 +1798,18 @@ def _process_canonical_path_previews(
         canonical_path,
         ", ".join(f"{srv.name}/{adp.name}" for srv, adp, _ in publishers),
     )
+
+    if is_strm(canonical_path):
+        # A .strm library file is a pointer: fail it here with the reason, rather than as an opaque FFmpeg error.
+        try:
+            media_input(canonical_path)
+        except StrmError as exc:
+            logger.warning("STRM file can't be used: {}", exc)
+            return MultiServerResult(
+                canonical_path=canonical_path,
+                status=MultiServerStatus.FAILED,
+                message=str(exc),
+            )
 
     if source_fingerprint is None and not os.path.isfile(canonical_path):
         # Issue #266 — a folder (TV series root, season dir) reached the

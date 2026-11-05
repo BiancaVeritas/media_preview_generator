@@ -24,6 +24,7 @@ from loguru import logger
 
 from ..markers.probe import ffprobe_path_for, kill_and_collect
 from ..processing.filter_chain import build_hdr10_zscale_chain
+from ..strm import StrmError, ffmpeg_input
 from ..utils import niced
 
 MAX_FRAMES = 14
@@ -118,10 +119,12 @@ def _color_transfer(path: str, ffmpeg: str) -> str:
         "stream=color_transfer",
         "-of",
         "json",
-        f"file:{path}",
+        ffmpeg_input(path, always_protocol=True),
     ]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except StrmError:
+        return ""
     except OSError:
         return ""
     try:
@@ -159,7 +162,7 @@ def _command(ffmpeg: str, path: str, start_ms: int, count: int, vf: str, out_dir
             f"{start_ms / 1000:.3f}",
             # "file:" so a name can never be read as another ffmpeg protocol or an option.
             "-i",
-            f"file:{path}",
+            ffmpeg_input(path, always_protocol=True),
             "-map",
             "0:v:0",
             "-an",
@@ -230,6 +233,8 @@ def _extract(binary: str, path: str, start_ms: int, count: int, vf: str, work: s
         code, err = _run(_command(binary, path, start_ms, count, vf, work), timeout=RUN_TIMEOUT_S)
     except subprocess.TimeoutExpired as exc:
         raise FramesError(f"Reading the frames took longer than {RUN_TIMEOUT_S:.0f} s") from exc
+    except StrmError as exc:
+        raise FramesError(str(exc)) from exc
     except OSError as exc:
         raise FramesError(f"Couldn't run ffmpeg ({type(exc).__name__})") from exc
     names = _frames_in(work)

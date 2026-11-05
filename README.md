@@ -1,4 +1,5 @@
 <!-- PROJECT SHIELDS: reference-style (defined at the bottom), amber like the docs site. -->
+> 中文说明：[README.zh-CN.md](README.zh-CN.md)
 <div align="center">
 
 [![Build][build-shield]][build-url]
@@ -62,6 +63,22 @@ the markers to every server that has the file. When it isn't sure, it sends noth
 a marker in the Inspector.
 
 **The GPU can be in another machine.** Add it as a [worker node](docs/remote-nodes.md); the app keeps the queue and every write.
+
+## STRM libraries
+
+A `.strm` file is a library file that holds one URL instead of the video itself. Emby and Jellyfin users
+build libraries of them over cloud drives, Alist and HTTP shares. Media Preview Generator reads the URL
+inside the `.strm` file and hands it to FFmpeg and ffprobe, so those libraries get previews like any
+other: the `.bif`/`.trickplay` files still land beside the `.strm` file, and Plex's bundle hash is still
+computed from the `.strm` file itself (when Plex indexes the `.strm` as the media file).
+
+- `http(s)://`, `rtsp://` and `rtmp://` URLs work; so does a local or mounted path, absolute or relative
+  to the `.strm` file, including a `.strm` that points at another `.strm`.
+- The URL has to be reachable from this container (and from a worker node, when one does the work).
+- MediaInfo builds without network support can't open a URL; the app then reads the stream's details
+  with ffprobe, HDR and Dolby Vision included.
+
+See [the STRM guide](docs/strm.md) for the accepted forms and troubleshooting.
 
 ## What it looks like
 

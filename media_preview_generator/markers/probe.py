@@ -24,6 +24,7 @@ from typing import Any
 from loguru import logger
 
 from ..display_rotation import display_matrix, rotation_filter
+from ..strm import StrmError, media_input
 
 KILL_WAIT_S = 5.0
 FFPROBE_REAPER = "ffprobe-reaper"
@@ -552,6 +553,13 @@ def _run_ffprobe(cmd: list[str], path: str, timeout_s: float) -> str:
     stuck = stuck_processes(FFPROBE_REAPER)
     if stuck >= MAX_STUCK_FFPROBES:
         raise ProbeStalledError(f"Not reading {path}: {stuck} earlier ffprobes are still stuck reading their files")
+    # A .strm file is read through the URL it holds; every command above put the path in last.
+    try:
+        source = media_input(path)
+    except StrmError as exc:
+        raise ProbeError(str(exc)) from exc
+    if source != path:
+        cmd = [source if argument == path else argument for argument in cmd]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     except OSError as exc:

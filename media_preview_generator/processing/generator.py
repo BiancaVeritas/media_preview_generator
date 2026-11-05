@@ -52,6 +52,7 @@ from loguru import logger
 from ..config import Config
 from ..display_rotation import display_matrix, rotation_filter
 from ..shutdown import is_shutting_down
+from ..strm import media_input
 from ..utils import cpu_workers_hint, debug_logging_hint, gpu_details_hint, is_node_mode, working_folder_hint
 from .ffmpeg_runner import (
     GPU_CANT_DECODE_LINE,
@@ -1540,7 +1541,7 @@ def _probe_video_end_seconds(video_file: str, stated_duration_s: float) -> float
         "packet=pts_time:format=start_time",
         "-of",
         "json",
-        video_file,
+        media_input(video_file),
     ]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=END_PROBE_TIMEOUT_S, check=False)
@@ -1790,7 +1791,7 @@ def _probe_max_keyframe_gap(
     cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0"]
     if read_intervals:
         cmd += ["-read_intervals", read_intervals]
-    cmd += ["-show_entries", "packet=pts_time,flags", "-of", "csv=p=0", video_file]
+    cmd += ["-show_entries", "packet=pts_time,flags", "-of", "csv=p=0", media_input(video_file)]
 
     try:
         proc = subprocess.run(
@@ -1932,25 +1933,59 @@ def _thumbnails_lost_their_colour(output_folder: str) -> bool:
 
 
 _FFPROBE_TRANSFER_TO_MEDIAINFO = {"smpte2084": "PQ", "arib-std-b67": "HLG"}
+_FFPROBE_FORMAT_TO_MEDIAINFO = {
+    "h264": "AVC",
+    "hevc": "HEVC",
+    "av1": "AV1",
+    "vp9": "VP9",
+    "mpeg2video": "MPEG Video",
+    "mpeg4": "MPEG-4 Visual",
+    "prores": "ProRes",
+}
+_FFPROBE_GREY_PIX_FMTS = frozenset({"gray", "gray10le", "gray12le", "gray14le", "gray16le"})
 _FFPROBE_FALLBACK_TIMEOUT_S = 30
 
 
 def _video_details_from_ffprobe(video_file: str) -> dict[str, str]:
-    """The HDR details of the first video stream, in MediaInfo's field names; empty if ffprobe can't say.
+    """The first video stream's details MediaInfo's fields, from ffprobe; empty if ffprobe can't say.
 
     Args:
         video_file: The file.
 
     Returns:
-        ``Transfer_characteristics`` (PQ or HLG) and ``HDR_format`` (Dolby Vision), for those the stream declares.
+        ``Format``, ``Duration``, ``ColorSpace`` (for greyscale), ``Transfer_characteristics`` (PQ or HLG) and
+        ``HDR_format`` (Dolby Vision), for those the stream declares.
     """
-    cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_streams", "-of", "json", video_file]
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_streams",
+        "-show_format",
+        "-of",
+        "json",
+        media_input(video_file),
+    ]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=_FFPROBE_FALLBACK_TIMEOUT_S, check=False)
-        stream = json.loads(proc.stdout or "{}")["streams"][0]
+        data = json.loads(proc.stdout or "{}")
+        stream = data["streams"][0]
+        duration = stream.get("duration") or (data.get("format") or {}).get("duration")
     except (subprocess.SubprocessError, OSError, ValueError, KeyError, IndexError, TypeError):
         return {}
     details: dict[str, str] = {}
+    try:
+        if float(duration) > 0:
+            details["Duration"] = str(round(float(duration) * 1000))
+    except (TypeError, ValueError):
+        pass
+    codec = _FFPROBE_FORMAT_TO_MEDIAINFO.get(str(stream.get("codec_name") or "").lower())
+    if codec:
+        details["Format"] = codec
+    if str(stream.get("pix_fmt") or "").lower() in _FFPROBE_GREY_PIX_FMTS:
+        details["ColorSpace"] = "Y"
     transfer = _FFPROBE_TRANSFER_TO_MEDIAINFO.get(str(stream.get("color_transfer")))
     for side_data in stream.get("side_data_list") or []:
         if "dv_profile" in side_data:
@@ -1962,13 +1997,20 @@ def _video_details_from_ffprobe(video_file: str) -> dict[str, str]:
     return details
 
 
+def _media_info_from_ffprobe(video_file: str) -> MediaInfo:
+    """A minimal ``MediaInfo`` holding what ffprobe says about the video, for files MediaInfo can't open itself."""
+    fields = "".join(f"<{name}>{value}</{name}>" for name, value in _video_details_from_ffprobe(video_file).items())
+    return MediaInfo(f'<Mediainfo><File><track type="Video">{fields}</track></File></Mediainfo>')
+
+
 def read_media_info(video_file: str, **parse_options: Any) -> MediaInfo:
     """The file's details as MediaInfo reads them; a file it can't read gets its HDR details from ffprobe, and one
     warning.
 
     MediaInfo copies a tag into its XML as it is, so a title holding U+FFFF makes the XML unreadable and pymediainfo
     raises ``ParseError``. FFmpeg reads the file fine, so it is processed on what ffprobe says about its HDR (an HDR
-    file is still tone mapped) rather than failed over a tag.
+    file is still tone mapped) rather than failed over a tag. A ``.strm`` file is read through the URL it holds; when
+    this build of MediaInfo can't open network URLs, ffprobe's details stand in.
 
     Args:
         video_file: The file.
@@ -1981,16 +2023,20 @@ def read_media_info(video_file: str, **parse_options: Any) -> MediaInfo:
         OSError: The file is missing, or the MediaInfo library can't be loaded.
         RuntimeError: MediaInfo couldn't open the file.
     """
+    source = media_input(video_file)
+    if source != video_file:
+        # libmediainfo opens URLs only in some builds (the Windows wheel has no network support), while ffprobe reads
+        # every protocol FFmpeg does. Its details cover what the previews and chapters ask a .strm file for.
+        return _media_info_from_ffprobe(video_file)
     try:
-        return MediaInfo.parse(video_file, **parse_options)
+        return MediaInfo.parse(source, **parse_options)
     except ET.ParseError as exc:
         logger.warning(
             "MediaInfo couldn't read the details of {} ({}); using what ffprobe says about its HDR.",
             video_file,
             exc,
         )
-        fields = "".join(f"<{name}>{value}</{name}>" for name, value in _video_details_from_ffprobe(video_file).items())
-        return MediaInfo(f'<Mediainfo><File><track type="Video">{fields}</track></File></Mediainfo>')
+        return _media_info_from_ffprobe(video_file)
 
 
 def display_turn(video_file: str) -> str | None:
@@ -2008,7 +2054,7 @@ def display_turn(video_file: str) -> str | None:
         read.
     """
     cmd = ["ffprobe", "-v", "error", "-select_streams", "V:0", "-show_entries", "stream_side_data=displaymatrix",
-           "-of", "json", video_file]  # fmt: skip
+           "-of", "json", media_input(video_file)]  # fmt: skip
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=_FFPROBE_FALLBACK_TIMEOUT_S, check=False)
         streams = json.loads(proc.stdout or "{}").get("streams") or [{}]

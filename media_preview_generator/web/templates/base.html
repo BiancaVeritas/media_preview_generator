@@ -298,6 +298,14 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        {# Switches the whole interface between Chinese and English; the choice is per browser. #}
+                        <button type="button" class="nav-link nav-ibtn btn btn-link d-flex align-items-center" id="langToggleBtn"
+                                aria-label="Switch interface language" title="Switch interface language">
+                            <i class="bi bi-translate" aria-hidden="true"></i>
+                            <span class="d-xl-none ms-2" id="langToggleLabel">English</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
                         <button type="button" class="nav-link nav-ibtn btn btn-link d-flex align-items-center" id="themeToggleBtn"
                                 aria-label="Toggle dark/light theme" title="Toggle dark/light theme">
                             <i class="bi bi-moon-stars-fill" id="themeToggleIcon"></i>
@@ -447,6 +455,11 @@
          its global escapeHtml / sanitizeNotificationHtml / showToast /
          copyVulkanDiagnosticBundle / apiGet / copyToClipboard / jobs /
          _renderPublishersBlock definitions. scan_filters.js has no such dependency. -->
+    {# Chinese interface: the catalogue is keyed by the English text, and i18n.js
+       swaps text nodes and attributes. Loads before app.js so the first render is
+       translated before the app's own DOMContentLoaded handlers run. #}
+    <script src="{{ url_for('static', filename='i18n/zh-CN.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <script src="{{ url_for('static', filename='js/scan_filters.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>

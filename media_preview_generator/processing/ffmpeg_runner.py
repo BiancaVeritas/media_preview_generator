@@ -37,6 +37,7 @@ from typing import Any, cast
 from loguru import logger
 
 from ..logging_config import per_file_logger
+from ..strm import media_input
 from ..utils import (
     FFMPEG_LOG_PREFIX,
     dies_with_node,
@@ -490,10 +491,10 @@ def create_ffmpeg_runner(
         # and stop after one frame rather than decoding an interval sequence.
         if chapter_start_ms is not None:
             args += ["-ss", f"{chapter_start_ms / 1000:.3f}"]
-        # Add input file and output options
+        # Add input file and output options. A .strm file is read through the URL it holds; outputs stay beside it.
         args += [
             "-i",
-            video_file,
+            media_input(video_file),
             "-an",
             "-sn",
             "-dn",

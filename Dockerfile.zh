@@ -1,0 +1,20 @@
+# Chinese UI + STRM support, on top of the published image.
+#
+# The base image already carries jellyfin-ffmpeg, the GPU drivers, the OCR
+# model and every Python dependency. Only the application package changes, so
+# this build takes seconds instead of the hour a full build needs.
+#
+#   docker build -f Dockerfile.zh -t media-preview-generator:zh .
+#
+# The base's entrypoint (/init /app/wrapper.sh) and workdir are inherited.
+FROM stevezzau/media_preview_generator:latest
+
+WORKDIR /app
+
+# Templates, static files (the Chinese catalogue) and Python code all live in
+# the package, which gunicorn imports from /app ahead of site-packages.
+COPY pyproject.toml /app/pyproject.toml
+COPY media_preview_generator/ /app/media_preview_generator/
+
+# Keep the image self-describing without touching the base's labels.
+LABEL org.opencontainers.image.title="Media Preview Generator (Chinese UI + STRM)"

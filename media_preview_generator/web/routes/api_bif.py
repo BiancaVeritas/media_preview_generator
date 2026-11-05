@@ -31,6 +31,7 @@ _MEDIA_FILE_EXTS = (
     ".ts",
     ".wmv",
     ".flv",
+    ".strm",
 )
 
 

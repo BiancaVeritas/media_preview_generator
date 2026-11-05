@@ -16,6 +16,7 @@ from loguru import logger
 from ..markers.freeze import Freeze
 from ..markers.probe import _count_stuck, kill_and_collect
 from ..markers.progress import read_progress
+from ..strm import StrmError, media_input
 from ..utils import dies_with_node, niced
 
 # The filter Plex Media Server 1.43 runs for each audio stream (``Plex Transcoder -i FILE -map 0:N -af ... -f null -``).
@@ -112,6 +113,10 @@ def command(ffmpeg: str, path: str, index: int, codec: str = "", *, drop_changed
     """
     if type(index) is not int or index < 0:
         raise LoudnessError("The audio stream index must be a nonnegative integer")
+    try:
+        source = media_input(path)
+    except StrmError as exc:
+        raise LoudnessError(str(exc)) from exc
     return [
         ffmpeg,
         "-hide_banner",
@@ -125,7 +130,7 @@ def command(ffmpeg: str, path: str, index: int, codec: str = "", *, drop_changed
         # audio format really changed.
         *(["-drop_changed", "1"] if drop_changed else ["-reinit_filter", "0"]),
         "-i",
-        path,
+        source,
         "-map",
         f"0:{index}",
         "-af",
@@ -147,7 +152,11 @@ def command_many(ffmpeg: str, path: str, tracks: list[tuple[int, str, int | None
     for index, codec, _duration_ms in tracks:
         if codec in NO_DRC_CODECS:
             args.extend((f"-drc_scale:{index}", "0"))
-    args.extend(("-reinit_filter", "0", "-i", path))
+    try:
+        source = media_input(path)
+    except StrmError as exc:
+        raise LoudnessError(str(exc)) from exc
+    args.extend(("-reinit_filter", "0", "-i", source))
     for index in indices:
         args.extend(
             (

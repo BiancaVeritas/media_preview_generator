@@ -775,7 +775,9 @@ def trigger_plex_partial_scan(
     return scanned
 
 
-VIDEO_EXTENSIONS = frozenset({".mkv", ".mp4", ".avi", ".m4v", ".ts", ".wmv", ".mov", ".flv", ".webm"})
+VIDEO_EXTENSIONS = frozenset(
+    {".mkv", ".mp4", ".avi", ".m4v", ".ts", ".wmv", ".mov", ".flv", ".webm", ".strm"}
+)
 
 
 def _expand_directory_to_media_files(

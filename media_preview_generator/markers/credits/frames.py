@@ -28,6 +28,7 @@ from loguru import logger
 
 from ...processing.ffmpeg_runner import GPU_CANT_DECODE_VERDICT, SAYS_NOTHING_RE
 from ...processing.hwaccel import hwaccel_decode_args
+from ...strm import media_input
 from ...utils import cause_chain, dies_with_node, scratch_dir
 from ..freeze import Freeze
 from ..probe import (
@@ -328,7 +329,7 @@ def decode_command(
     command += ["-ss", f"{start_s:.3f}"]
     if length_s is not None:
         command += ["-t", f"{length_s:.3f}"]
-    command += ["-copyts", "-i", path, "-an", "-sn", "-dn", "-fps_mode", "passthrough",
+    command += ["-copyts", "-i", media_input(path), "-an", "-sn", "-dn", "-fps_mode", "passthrough",
                 "-vf", f"{video_filter},showinfo", "-f", "rawvideo", "-"]  # fmt: skip
     return command, decode.active
 

@@ -1974,7 +1974,7 @@ class JobManager:
             # Skip the heuristic in that case — there's no per-file
             # basename to compare against, and the parent's title (e.g.
             # "333 files") is already what we want.
-            _MEDIA_EXTS = (".mkv", ".mp4", ".m4v", ".avi", ".mov", ".wmv", ".ts")
+            _MEDIA_EXTS = (".mkv", ".mp4", ".m4v", ".avi", ".mov", ".wmv", ".ts", ".strm")
             if canonical_path and basename and basename != job.library_name:
                 cur = job.library_name or ""
                 new_dirty = basename.lower().endswith(_MEDIA_EXTS)

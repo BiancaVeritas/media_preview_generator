@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 from loguru import logger
 
+from ...strm import StrmError, media_input
 from ...utils import dies_with_node
 from ..freeze import Freeze
 from ..fs import gone_from_disk
@@ -268,9 +269,13 @@ def fingerprint_command(
     )
     report = [] if progress_fd is None else ["-progress", f"pipe:{progress_fd}"]
     stream = [] if audio_stream is None else ["-map", f"0:{audio_stream}"]
+    try:
+        source = media_input(path)
+    except StrmError as exc:
+        raise FingerprintError(str(exc)) from exc
     return [
         ffmpeg, "-nostdin", "-v", "error", *report,
-        "-ss", "0", "-t", f"{length_s:.3f}", "-i", path, *stream,
+        "-ss", "0", "-t", f"{length_s:.3f}", "-i", source, *stream,
         "-vn", "-sn", "-dn", "-ac", "2", *speed,
         "-f", "chromaprint", "-algorithm", str(ALGORITHM), "-fp_format", "raw", "-",
     ]  # fmt: skip
