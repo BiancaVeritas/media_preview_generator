@@ -347,6 +347,7 @@ These are not migrated to settings.json and remain in effect:
 | `REQUESTS_CA_BUNDLE` | Built-in list | A certificate file the app trusts for https instead of its built-in list, e.g. for a [node behind https](guides.md#a-node-behind-a-reverse-proxy) with your own certificate. Keep the public authorities in it: it applies to every https connection. |
 | `CONFIG_BACKUP_KEEP` | `10` | Snapshots kept per config file. Used only until you set it in **Settings → Backups**. 1–100. |
 | `CONFIG_BACKUP_MAX_AGE_DAYS` | `0` | Drop snapshots older than this many days (`0` = off). Used only until you set it in **Settings → Backups**. 0–365. |
+| `OUTPUT_JOURNAL` | `on` | Write and read the small `.meta` sidecars beside Emby BIFs and Jellyfin trickplay output (the source fingerprint that lets a repeat job skip the decode and notice a replaced file). Set to `off` to stop creating them; an existing output then counts as fresh, so a file replaced in place keeps its old previews until regenerated. |
 
 ### Developer / harness-only
 

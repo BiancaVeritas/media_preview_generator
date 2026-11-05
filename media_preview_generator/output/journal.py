@@ -43,6 +43,20 @@ from .plex_hash import SourceFingerprint, get_source_fingerprint, same_recorded_
 #: sidecar (fresh); the next publish rewrites it in the current schema.
 JOURNAL_SCHEMA_VERSION = 1
 
+#: Set ``OUTPUT_JOURNAL=off`` to stop writing and reading the ``.meta`` sidecars.
+#: They make a second job for the same file skip the decode and notice a replaced
+#: source; without them an existing output is taken as fresh (the pre-journal
+#: behaviour), so a source swapped in place can keep its old previews until the
+#: file is regenerated. Off is for libraries where a replaced file is deleted
+#: rather than overwritten.
+JOURNAL_ENV = "OUTPUT_JOURNAL"
+_DISABLED_VALUES = frozenset({"0", "false", "no", "off", "disabled"})
+
+
+def journal_enabled() -> bool:
+    """Whether the per-output ``.meta`` sidecars are written and read."""
+    return os.environ.get(JOURNAL_ENV, "").strip().lower() not in _DISABLED_VALUES
+
 
 def _meta_path_for(output: Path) -> Path:
     """Return the ``.meta`` sidecar path for an output file.
@@ -76,7 +90,7 @@ def outputs_have_content(output_paths: Sequence[Path]) -> bool:
 
 def _read_meta(meta_path: Path) -> dict | None:
     """Read a current-schema journal, treating missing or malformed data as unknown."""
-    if not meta_path.exists():
+    if not journal_enabled() or not meta_path.exists():
         return None
     try:
         data = json.loads(meta_path.read_text())
@@ -128,6 +142,8 @@ def write_meta(
     Failures here never bubble — at worst we miss a future short-circuit
     and re-run FFmpeg.
     """
+    if not journal_enabled():
+        return
     try:
         fingerprint = source_fingerprint or get_source_fingerprint(canonical_path)
     except OSError:

@@ -624,3 +624,45 @@ class TestMetadataOnlySourceChange:
         change_source(source, how)
 
         assert outputs_fresh_for_source([output], str(source), require_source_fingerprint=True) is False
+
+
+class TestDisabledJournal:
+    """``OUTPUT_JOURNAL=off``: no new sidecars, and old ones are ignored."""
+
+    @pytest.mark.parametrize("value", ["0", "false", "no", "off", "disabled", "OFF"])
+    def test_write_meta_writes_nothing(self, tmp_path, monkeypatch, value):
+        monkeypatch.setenv("OUTPUT_JOURNAL", value)
+        source = tmp_path / "movie.mkv"
+        source.write_bytes(b"x" * 100)
+        out = tmp_path / "movie-320-10.bif"
+        out.write_bytes(b"frames")
+
+        write_meta([out], str(source))
+
+        assert not _meta_path_for(out).exists()
+
+    def test_existing_sidecar_is_ignored(self, tmp_path, monkeypatch):
+        source = tmp_path / "movie.mkv"
+        source.write_bytes(b"x" * 100)
+        out = tmp_path / "movie-320-10.bif"
+        out.write_bytes(b"frames")
+        write_meta([out], str(source))
+
+        # A replacement (same output, new source) would make the journal say stale.
+        source.write_bytes(b"y" * 200)
+        assert outputs_fresh_for_source([out], str(source)) is False
+
+        monkeypatch.setenv("OUTPUT_JOURNAL", "off")
+        assert outputs_fresh_for_source([out], str(source)) is True
+
+    @pytest.mark.parametrize("value", ["1", "true", "on", ""])
+    def test_other_values_keep_the_journal(self, tmp_path, monkeypatch, value):
+        monkeypatch.setenv("OUTPUT_JOURNAL", value)
+        source = tmp_path / "movie.mkv"
+        source.write_bytes(b"x" * 100)
+        out = tmp_path / "movie-320-10.bif"
+        out.write_bytes(b"frames")
+
+        write_meta([out], str(source))
+
+        assert _meta_path_for(out).exists()
