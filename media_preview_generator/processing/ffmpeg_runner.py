@@ -53,6 +53,7 @@ from .filter_chain import (
     DV5_PATH_VAAPI_VULKAN,
 )
 from .hwaccel import hwaccel_decode_args
+from .scaling import cuda_scale_suffix
 
 # Added to the stderr lines a run returns when the stall watchdog stopped it: the exit code (-9) alone reads like an OOM
 # kill, and the retry cascade words its CPU hand-off by the real cause (``generator._gpu_hand_off``).
@@ -229,7 +230,7 @@ def create_ffmpeg_runner(
             box = "w=640:h=480"
         if effective_gpu == "NVIDIA":
             return (
-                f"scale_cuda={box}:force_original_aspect_ratio=decrease:"
+                f"scale_cuda={box}:force_original_aspect_ratio=decrease{cuda_scale_suffix()}:"
                 f"force_divisible_by=2:format={fmt},hwdownload,format={fmt}"
             )
         if effective_gpu in {"INTEL", "AMD"}:

@@ -77,6 +77,7 @@ from .retry_cascade import (
     classify_cpu_fallback_reason,
     classify_dv_safe_retry_reason,
 )
+from .scaling import cpu_scale_suffix
 
 # Issue #238 / #256 — how many byte-identical thumbnails we tolerate before
 # the keyframe-only fast path is considered unsafe. Keyframe spacing is rarely
@@ -2141,7 +2142,7 @@ def generate_images(
     # _run_ffmpeg so it can adapt to the effective GPU on each attempt
     # (GPU→CPU retry, NVIDIA↔VAAPI overrides, etc.).
     fps_filter = build_fps_filter(fps_value)
-    base_scale = "scale=w=320:h=240:force_original_aspect_ratio=decrease"
+    base_scale = f"scale=w=320:h=240:force_original_aspect_ratio=decrease{cpu_scale_suffix()}"
 
     # vf assembly classification.  Set by HDR detection below; consumed
     # by _run_ffmpeg.  Possible values:

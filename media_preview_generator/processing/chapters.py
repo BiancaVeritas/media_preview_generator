@@ -40,6 +40,7 @@ from .ffmpeg_runner import (
 from .filter_chain import build_hdr10_zscale_chain
 from .generator import CancellationError, read_media_info
 from .hdr_detection import is_dv_no_backward_compat, is_hdr_transfer
+from .scaling import cpu_scale_suffix
 
 if TYPE_CHECKING:
     from ..servers.plex_chapters import ChapterTarget
@@ -609,7 +610,7 @@ def extract_chapter_frame(
     local_config = copy.copy(config)
     local_config.thumbnail_quality = _QUALITY
     threads = max(1, int(ffmpeg_threads_override or config.ffmpeg_threads or 2))
-    scale = f"scale=w={_WIDTH}:h=-2"
+    scale = f"scale=w={_WIDTH}:h=-2{cpu_scale_suffix()}"
     if hdr:
         # Tone mapping produces limited-range SDR; JPEG requires full-range
         # samples. Convert the levels during resize, rather than just tagging
