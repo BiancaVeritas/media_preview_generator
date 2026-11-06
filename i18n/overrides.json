@@ -1,0 +1,266 @@
+{
+  "_note": "Hand-written corrections and additions layered over the generated catalogue. scripts/build_i18n_catalogue.py merges this last.",
+  "strings": {
+    "All groups": "全部组",
+    "Occupied": "占用中",
+    "Waiting for work": "等待任务",
+    "CPU fallback": "CPU 回退",
+    "No servers configured": "未配置服务器",
+    "Task": "任务",
+    "Speed": "速度",
+    "ETA": "预计剩余",
+    "default": "默认",
+    "CPU": "CPU",
+    "No servers yet": "还没有服务器",
+    "What changed": "变更内容",
+    "Settings migrated": "设置已迁移",
+    "Your settings were migrated from schema": "你的设置已从旧版结构迁移",
+    "Your worker counts are now worker groups. Existing availability and pauses are preserved.": "工作进程数量现已改为「工作组」管理。原有的可用时段和暂停状态都会保留。",
+    "Week at a glance": "一周概览",
+    "All libraries": "所有媒体库",
+    "Job details": "任务详情",
+    "Job logs": "任务日志",
+    "Job outcomes:": "任务结果：",
+    "View job logs": "查看任务日志",
+    "Video previews": "视频预览图",
+    "What Pause does": "暂停的作用",
+    "Which libraries this job processes, for this run only.": "本次任务处理哪些媒体库（仅对这一次生效）。",
+    "Which libraries this schedule processes, every time it runs.": "该计划任务每次运行时处理哪些媒体库。",
+    "No schedule to run": "没有可运行的计划任务",
+    "Hide until next restart": "在下次重启前不再提示",
+    "Nothing set up yet": "尚未进行任何设置",
+    "About this note": "关于此提示",
+    "About week at a glance": "关于一周概览",
+    "About worker groups": "关于工作组",
+    "About FFmpeg threads": "关于 FFmpeg 线程",
+    "FFmpeg threads per worker": "每个工作进程的 FFmpeg 线程数",
+    "CPU threads each GPU worker may use. 0 = no limit. Set worker counts in Worker groups.": "每个 GPU 工作进程可使用的 CPU 线程数。0 = 不限制。工作进程数量在工作组中设置。",
+    "Workers on CPU": "CPU 上的工作进程",
+    "Workers on NVIDIA GeForce RTX 3080": "NVIDIA GeForce RTX 3080 上的工作进程",
+    "Edit CPU workers": "编辑 CPU 工作进程",
+    "Enable CPU workers": "启用 CPU 工作进程",
+    "Remove one worker from CPU": "从 CPU 移除一个工作进程",
+    "Add one worker to CPU": "为 CPU 添加一个工作进程",
+    "Remove one worker from NVIDIA GeForce RTX 3080": "从 NVIDIA GeForce RTX 3080 移除一个工作进程",
+    "Add one worker to NVIDIA GeForce RTX 3080": "为 NVIDIA GeForce RTX 3080 添加一个工作进程",
+    "Edit NVIDIA GeForce RTX 3080": "编辑 NVIDIA GeForce RTX 3080",
+    "Enable NVIDIA GeForce RTX 3080": "启用 NVIDIA GeForce RTX 3080",
+    "Worker ID 1": "工作进程 ID 1",
+    "Worker ID 2": "工作进程 ID 2",
+    "Processing paused. Resume processing to use available groups.": "处理已暂停。恢复处理后才能使用可用的工作组。",
+    "No worker groups configured. Jobs wait until a compatible group is available.": "尚未配置工作组。任务会等待，直到出现兼容的工作组。",
+    "Quiet hours are disabled": "免打扰时段未启用",
+    "Remove the device in Settings to use zero.": "如需设为 0，请在设置中移除该设备。",
+    "Add CPU group for loudness": "为响度分析添加 CPU 组",
+    "Auto uses at least 32 checks.": "自动模式至少使用 32 次检查。",
+    "How chatty the logs are: DEBUG = everything, INFO = normal, WARNING/ERROR = only problems.": "日志详细程度：DEBUG = 全部内容，INFO = 常规，WARNING/ERROR = 仅问题。",
+    "How long results stay cached before being deleted. Longer = more reuse but more disk; shorter = saves disk but more re-processing.": "结果在缓存中保留多久后删除。越长 = 复用越多但占磁盘；越短 = 省磁盘但重复处理更多。",
+    "How many files a full scan checks at once for an existing preview. 0 = Auto. Click for more.": "完整扫描时同时检查多少个文件是否已有预览图。0 = 自动。点击了解更多。",
+    "How many times to retry if the media server hasn't indexed the file yet, or if a per-file failure is recoverable. 0 = no retries.": "媒体服务器尚未索引文件、或单个文件失败可恢复时，重试多少次。0 = 不重试。",
+    "Daily at 03:00": "每天 03:00",
+    "Daily at 04:30": "每天 04:30",
+    "Tomorrow 03:00": "明天 03:00",
+    "Tomorrow 04:30": "明天 04:30",
+    "Live saved:": "已实时保存：",
+    "no backups yet": "尚无备份",
+    "Restores markers": "恢复标记",
+    "Counts work left": "统计剩余工作量",
+    "Check servers actions": "检查服务器操作",
+    "Library Health check": "媒体库健康检查",
+    "Library Health check actions": "媒体库健康检查操作",
+    "Run Library Health check now": "立即运行媒体库健康检查",
+    "Run Check servers now": "立即检查服务器",
+    "Disable Library Health check": "禁用媒体库健康检查",
+    "Edit Library Health check": "编辑媒体库健康检查",
+    "Backup snapshot for settings.json": "settings.json 的备份快照",
+    "Connect Plex, Emby or Jellyfin to start generating previews.": "连接 Plex、Emby 或 Jellyfin 即可开始生成预览图。",
+    "Needs ONNX Runtime and OpenCV, which the Docker image includes; they aren't installed here": "需要 ONNX Runtime 和 OpenCV（Docker 镜像已包含），当前环境未安装",
+    "Plex Pass": "Plex Pass",
+    "Settings → Connect → + → Webhook": "设置 → 连接 → + → Webhook",
+    "Setup in Radarr": "在 Radarr 中设置",
+    "Setup in Sonarr": "在 Sonarr 中设置",
+    "Setup in Sportarr": "在 Sportarr 中设置",
+    "Copy Radarr webhook URL": "复制 Radarr Webhook 地址",
+    "Copy Sonarr webhook URL": "复制 Sonarr Webhook 地址",
+    "Copy Sportarr webhook URL": "复制 Sportarr Webhook 地址",
+    "Radarr Webhook URL": "Radarr Webhook 地址",
+    "Sonarr Webhook URL": "Sonarr Webhook 地址",
+    "Sportarr Webhook URL": "Sportarr Webhook 地址",
+    "On Import": "导入时",
+    "On Upgrade": "升级时",
+    "1 available": "1 个可用",
+    "2 snapshots": "2 个快照",
+    ", we just reuse them — fast. When they're": "，我们直接复用——很快。当它们",
+    ", we fully decode the video to generate a unique frame for each slot — correct, but slower for that file.": "，我们会完整解码视频，为每个位置生成不同的画面——结果准确，但对该文件更慢。",
+    "and": "和",
+    "and add a": "并添加一个",
+    "and tick the": "并勾选",
+    "brand-new": "全新的",
+    "upgrades": "升级",
+    "unavailable": "不可用",
+    "notification.": "通知。",
+    ", enable": "，启用",
+    ", then": "，然后",
+    ", use": "，使用",
+    ", value": "，值",
+    ", subscribe to the": "，订阅",
+    ": key": "：密钥",
+    ": Leave Username blank and put your webhook secret in Password.": "：用户名留空，把 Webhook 密钥填在密码栏。",
+    ": copy the URL above": "：复制上面的地址",
+    ": copy the Custom Webhook URL above": "：复制上面的自定义 Webhook 地址",
+    "= your webhook secret.": "= 你的 Webhook 密钥。",
+    "0 enabled": "已启用 0 项",
+    "0 jobs match these filters": "0 个任务符合这些筛选条件",
+    "0 schedules enabled": "已启用 0 个计划任务",
+    "0 of today's lookups used — limit set by TheIntroDB": "今日已用 0 次查询——额度由 TheIntroDB 设定",
+    "Safe to ignore unless you need to roll back.": "除非需要回滚，否则可以忽略。",
+    "A backup of your previous settings is at": "上一份设置的备份位于",
+    "Hide system details, No servers configured": "隐藏系统详情，未配置服务器",
+    "Version": "版本",
+    "Setup complete": "设置完成",
+    "Media Preview Generator": "媒体预览生成器",
+    "Nothing queued": "队列为空",
+    "Pause": "暂停",
+    "CPU workers": "CPU 工作进程",
+    "GPU workers": "GPU 工作进程",
+    "Clear 0 jobs": "清除 0 个任务",
+    "Clear {0} jobs": "清除 {0} 个任务",
+    "Start a job, or choose All jobs and history (the All tab) to review past work.": "新建任务，或选择「所有任务和历史记录」（「全部」标签页）查看以往的工作。",
+    "(lower = sharper)": "（数值越小越清晰）",
+    "0 = Auto": "0 = 自动",
+    "days": "天",
+    "files": "个文件",
+    "min": "分钟",
+    "seconds": "秒",
+    "off": "关闭",
+    "different": "不同",
+    "with value": "值",
+    "Webhook URL": "Webhook 地址",
+    "Webhook": "Webhook",
+    "Sonarr / Radarr / Tdarr": "Sonarr / Radarr / Tdarr",
+    "Emby ·": "Emby ·",
+    "Plex ·": "Plex ·",
+    "— safe to ignore unless you need to roll back.": "—— 除非需要回滚，否则可以忽略。",
+    "safe to ignore unless you need to roll back.": "除非需要回滚，否则可以忽略。",
+    "Check servers": "检查服务器",
+    "Then catch-up jobs": "随后运行补漏任务",
+    "On File Import": "文件导入时",
+    "On File Upgrade": "文件升级时",
+    "Web": "Web",
+    "URL": "URL",
+    "in about 8 hours": "约 8 小时后",
+    "in about 9 hours": "约 9 小时后",
+    "1 snapshot": "1 个快照",
+    "snapshots": "个快照"
+  },
+  "patterns": [
+    [
+      "Scheduled now: CPU {0} · GPU {1}. Weekly peak: CPU {2} · GPU {3}. UTC.",
+      "当前计划：CPU {0} · GPU {1}。每周峰值：CPU {2} · GPU {3}。UTC。"
+    ],
+    [
+      "{0} groups · {1} occupied. Showing {2} of {3}.",
+      "{0} 个组 · {1} 个占用中。显示 {2}/{3}。"
+    ],
+    [
+      "Version {0}. Release notes, opens in a new tab",
+      "版本 {0}。发行说明，将在新标签页打开"
+    ],
+    [
+      "{0} groups · {1} occupied. Showing {2} of {3}",
+      "{0} 个组 · {1} 个占用中。显示 {2}/{3}"
+    ],
+    [
+      "CPU workers · CPU · {0} · {1}",
+      "CPU 工作进程 · CPU · {0} · {1}"
+    ],
+    [
+      "{0} jobs match these filters",
+      "{0} 个任务符合这些筛选条件"
+    ],
+    [
+      "{0} unread notifications",
+      "{0} 条未读通知"
+    ],
+    [
+      "{0} · {1} · {2} · {3}",
+      "{0} · {1} · {2} · {3}"
+    ],
+    [
+      "Show all {0} workers",
+      "显示全部 {0} 个工作进程"
+    ],
+    [
+      "{0} of {1} connected",
+      "已连接 {0}/{1}"
+    ],
+    [
+      "{0} worker idle #{1}",
+      "{0} 个工作进程空闲 #{1}"
+    ],
+    [
+      "CPU workers · {0}",
+      "CPU 工作进程 · {0}"
+    ],
+    [
+      "{0} of {1} lines",
+      "{0}/{1} 行"
+    ],
+    [
+      "{0} workers idle",
+      "{0} 个工作进程空闲"
+    ],
+    [
+      "{0} worker idle",
+      "{0} 个工作进程空闲"
+    ],
+    [
+      "{0} GPU workers",
+      "{0} 个 GPU 工作进程"
+    ],
+    [
+      "{0} CPU workers",
+      "{0} 个 CPU 工作进程"
+    ],
+    [
+      "{0} · {1} · {2}",
+      "{0} · {1} · {2}"
+    ],
+    [
+      "Live saved: {0}",
+      "已实时保存：{0}"
+    ],
+    [
+      "{0} / {1} busy",
+      "{0} / {1} 忙碌"
+    ],
+    [
+      "Clear {0} jobs",
+      "清除 {0} 个任务"
+    ],
+    [
+      "{0} snapshots",
+      "{0} 个快照"
+    ],
+    [
+      "Retry {0}/{1}",
+      "重试 {0}/{1}"
+    ],
+    [
+      "{0} available",
+      "{0} 个可用"
+    ],
+    [
+      "{0} enabled",
+      "已启用 {0} 项"
+    ],
+    [
+      "Version {0}",
+      "版本 {0}"
+    ],
+    [
+      "About {0}",
+      "关于{0}"
+    ]
+  ]
+}

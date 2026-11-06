@@ -18,6 +18,7 @@
     "use strict";
 
     var LANG_KEY = "mpg_lang";
+    var COOKIE_NAME = "mpg_lang";
     var DEFAULT_LANG = "zh-CN";
     var STORE_ATTRIBUTES = [
         "title",
@@ -83,6 +84,10 @@
         return out;
     }
 
+    // A GPU/language/level name is not prose: the pattern scan would turn "CPU" into "个 CPU".
+    var NAMES = { CPU: 1, GPU: 1, English: 1, Plex: 1, Emby: 1, Jellyfin: 1, Sonarr: 1, Radarr: 1, Tdarr: 1,
+        NVIDIA: 1, Vulkan: 1, CUDA: 1, UTC: 1, Webhook: 1, "Plex Pass": 1, "1 CPU": 1, "1 GPU": 1 };
+
     function lookup(text) {
         var key = normalize(text);
         // Numbers, paths and punctuation can't be labels; skip the pattern scan for them.
@@ -92,6 +97,9 @@
         var direct = dict[key];
         if (direct !== undefined) {
             return direct;
+        }
+        if (NAMES[key] || /^v?\d+\.\d+/.test(key)) {
+            return null;
         }
         for (var i = 0; i < patterns.length; i += 1) {
             var pattern = patterns[i];
@@ -204,6 +212,16 @@
         }
     }
 
+    var OBSERVE_OPTIONS = {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        // The app also writes titles and placeholders (tooltips, badges) after load. A translated value is no longer a
+        // key, so the write this makes cannot trigger another translation.
+        attributes: true,
+        attributeFilter: ["title", "placeholder", "aria-label", "alt", "data-bs-title", "data-bs-original-title"]
+    };
+
     var observer = new MutationObserver(function (mutations) {
         observer.disconnect();
         try {
@@ -213,13 +231,17 @@
                     translateText(mutation.target);
                     continue;
                 }
+                if (mutation.type === "attributes") {
+                    translateAttributes(mutation.target);
+                    continue;
+                }
                 for (var j = 0; j < mutation.addedNodes.length; j += 1) {
                     translateTree(mutation.addedNodes[j]);
                 }
             }
             translateTitle();
         } finally {
-            observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+            observer.observe(document.body, OBSERVE_OPTIONS);
         }
     });
 
@@ -254,7 +276,7 @@
         translateDialogs();
         translateTree(document.body);
         translateTitle();
-        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        observer.observe(document.body, OBSERVE_OPTIONS);
         window.mpgTranslate = translateTree;
     }
 
@@ -274,9 +296,26 @@
             } catch (error) {
                 /* best-effort; the page still reloads in the default language */
             }
+            // The server translates each page from this cookie, so it is set before the reload as well.
+            try {
+                document.cookie = COOKIE_NAME + "=" + next + "; Path=/; Max-Age=31536000; SameSite=Lax";
+            } catch (error) {
+                /* the reload then keeps the language the server was already told */
+            }
             window.location.reload();
         });
     }
+
+    // Keep the server's cookie and this browser's choice in step (an older browser may hold only the localStorage key).
+    function syncCookies() {
+        try {
+            document.cookie = COOKIE_NAME + "=" + lang + "; Path=/; Max-Age=31536000; SameSite=Lax";
+        } catch (error) {
+            /* nothing to do: the server falls back to its default */
+        }
+    }
+
+    syncCookies();
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function () {

@@ -12,7 +12,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask_wtf.csrf import CSRFProtect
@@ -25,6 +25,7 @@ from ..shutdown import on_shutdown
 from .auth import log_token_on_startup
 from .jobs import JobStatus, get_job_manager
 from .scheduler import get_schedule_manager
+from .server_i18n import DEFAULT_LANG, LANG_COOKIE, SUPPORTED_LANGS, translate_html
 
 # Global SocketIO instance
 socketio = SocketIO()
@@ -987,6 +988,29 @@ def create_app(config_dir: str | None = None) -> Flask:
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault(APP_INSTANCE_HEADER, app.config["APP_INSTANCE_ID"])
+        return response
+
+    @app.after_request
+    def translate_page(response):
+        """Render an HTML page in the requested language before it is sent.
+
+        The browser-side translator (``static/js/i18n.js``) can only run after the document has parsed, so every page
+        change showed the English labels for a frame. Translating here removes that flash; the script stays for the
+        text the app writes after load.
+        """
+        if response.mimetype != "text/html" or response.direct_passthrough or response.status_code >= 400:
+            return response
+        lang = request.cookies.get(LANG_COOKIE) or DEFAULT_LANG
+        if lang not in SUPPORTED_LANGS:
+            lang = DEFAULT_LANG
+        try:
+            body = response.get_data(as_text=True)
+        except (RuntimeError, UnicodeDecodeError):
+            return response
+        translated = translate_html(body, lang)
+        if translated != body:
+            response.set_data(translated)
+            response.headers["Content-Length"] = str(len(response.get_data()))
         return response
 
     # Auto-requeue jobs that were interrupted by the server restart. Kept ahead of schedule ticks; leftover Intro &
