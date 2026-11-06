@@ -1506,9 +1506,10 @@ def _expected_frame_count(media_info, interval: float) -> float | None:
     return duration_s / interval
 
 
-#: How long to wait before each re-open of a stream that stopped answering (a .strm file's URL). Two retries cover a
-#: cloud drive's momentary refusal without holding a worker for long.
-NETWORK_INPUT_RETRY_DELAYS_S: tuple[int, ...] = (2, 8)
+#: How long to wait before each re-open of a stream that stopped answering (a .strm file's URL). The first is immediate:
+#: a dropped connection is often already over, and a re-request costs one header read. The longer waits are for a cloud
+#: drive that is throttling the link for a moment, where asking again at once gets the same short answer.
+NETWORK_INPUT_RETRY_DELAYS_S: tuple[int, ...] = (0, 2, 8)
 
 #: The end-of-file probe only picks which warning to log, so it gets far less
 #: time than the keyframe probe: a stalled read falls back to the generic
@@ -2633,13 +2634,14 @@ def generate_images(
                 raise CancellationError(f"Processing cancelled for {video_file}")
             logger.warning(
                 "The stream for {} stopped answering while it was being read ({} of {}). "
-                "Opening it again in {}s — a cloud drive or HTTP share often serves it whole the second time.",
+                "Reopening it {} — a cloud drive or HTTP share often serves it whole the second time.",
                 os.path.basename(video_file),
                 attempt,
                 len(NETWORK_INPUT_RETRY_DELAYS_S),
-                wait_s,
+                "now" if wait_s == 0 else f"in {wait_s}s",
             )
-            time.sleep(wait_s)
+            if wait_s:
+                time.sleep(wait_s)
             _clean_output_images(output_folder)
             retry_rc, seconds, speed, retry_stderr = _run_ffmpeg(use_skip=False, init_vulkan=use_libplacebo)
             rc, stderr_lines = retry_rc, retry_stderr
