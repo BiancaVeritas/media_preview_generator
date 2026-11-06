@@ -29,6 +29,8 @@ MAX_STRM_DEPTH = 5
 
 #: A URL scheme (``https://``, ``rtsp://``, ``udp://``); a Windows drive letter isn't one.
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*://")
+#: Schemes read over a connection that can drop mid-stream, as a cloud drive's link does.
+_NETWORK_SCHEME_RE = re.compile(r"^(?:https?|rtsp|rtmps?|rtmp)://", re.IGNORECASE)
 
 
 class StrmError(OSError):
@@ -154,6 +156,24 @@ def media_input(path: str | os.PathLike[str]) -> str:
     A ``.strm`` file gives the URL it holds; anything else is returned unchanged.
     """
     return resolve(path).input
+
+
+def is_network_input(path: str | os.PathLike[str]) -> bool:
+    """Whether ``path`` (or the URL a ``.strm`` file holds) is read over the network.
+
+    Such a source can drop the connection or serve a short read for a moment, so the preview pipeline retries it and
+    tells FFmpeg to reconnect rather than failing the file.
+
+    Args:
+        path: A media path as the server reported it.
+
+    Returns:
+        True for an http(s), rtsp or rtmp source.
+    """
+    try:
+        return bool(_NETWORK_SCHEME_RE.match(media_input(path)))
+    except StrmError:
+        return False
 
 
 def ffmpeg_input(path: str | os.PathLike[str], *, always_protocol: bool = False) -> str:

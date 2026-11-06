@@ -242,3 +242,12 @@ def test_generate_images_reads_the_stream_and_writes_previews(tmp_path: Path):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_is_network_input_knows_http_and_local(tmp_path: Path):
+    remote = _write(tmp_path / "Remote.strm", "https://example.test/movie.mkv\n")
+    _write(tmp_path / "movie.mkv", "video")
+
+    assert strm.is_network_input(remote) is True
+    assert strm.is_network_input(tmp_path / "movie.mkv") is False
+    assert strm.is_network_input(tmp_path / "broken.strm") is False

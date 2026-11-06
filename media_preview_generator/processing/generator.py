@@ -52,7 +52,7 @@ from loguru import logger
 from ..config import Config
 from ..display_rotation import display_matrix, rotation_filter
 from ..shutdown import is_shutting_down
-from ..strm import media_input
+from ..strm import is_network_input, media_input
 from ..utils import cpu_workers_hint, debug_logging_hint, gpu_details_hint, is_node_mode, working_folder_hint
 from .ffmpeg_runner import (
     GPU_CANT_DECODE_LINE,
@@ -1506,6 +1506,10 @@ def _expected_frame_count(media_info, interval: float) -> float | None:
     return duration_s / interval
 
 
+#: How long to wait before each re-open of a stream that stopped answering (a .strm file's URL). Two retries cover a
+#: cloud drive's momentary refusal without holding a worker for long.
+NETWORK_INPUT_RETRY_DELAYS_S: tuple[int, ...] = (2, 8)
+
 #: The end-of-file probe only picks which warning to log, so it gets far less
 #: time than the keyframe probe: a stalled read falls back to the generic
 #: warning instead of holding a worker. Measured cost is 0.3-5 s.
@@ -2619,6 +2623,35 @@ def generate_images(
     no_decoder = rc != 0 and video_has_no_decoder(stderr_lines)
     # Likewise a file FFmpeg couldn't open or parse: another device reads the same bytes.
     input_unreadable = video_input_unreadable(rc, stderr_lines, frames_written=image_count > 0 or partial_discarded)
+
+    # A source read over HTTP (a .strm file's cloud-drive link, an HTTP share) can serve a broken or short answer once:
+    # a dropped connection leaves the MP4 index half-read ("contradictionary STSC and STCO"), and the same URL opens
+    # fine a moment later. Every other tier re-reads the same bytes, so this is its own retry on a fresh connection.
+    if input_unreadable and image_count == 0 and is_network_input(video_file):
+        for attempt, wait_s in enumerate(NETWORK_INPUT_RETRY_DELAYS_S, start=1):
+            if cancel_check and cancel_check():
+                raise CancellationError(f"Processing cancelled for {video_file}")
+            logger.warning(
+                "The stream for {} stopped answering while it was being read ({} of {}). "
+                "Opening it again in {}s — a cloud drive or HTTP share often serves it whole the second time.",
+                os.path.basename(video_file),
+                attempt,
+                len(NETWORK_INPUT_RETRY_DELAYS_S),
+                wait_s,
+            )
+            time.sleep(wait_s)
+            _clean_output_images(output_folder)
+            retry_rc, seconds, speed, retry_stderr = _run_ffmpeg(use_skip=False, init_vulkan=use_libplacebo)
+            rc, stderr_lines = retry_rc, retry_stderr
+            if retry_stderr:
+                stderr_lines_all.extend(retry_stderr)
+            image_count = _count_usable_frames(rc, stderr_lines)
+            no_decoder = rc != 0 and video_has_no_decoder(stderr_lines)
+            input_unreadable = video_input_unreadable(
+                rc, stderr_lines, frames_written=image_count > 0 or partial_discarded
+            )
+            if image_count > 0 or not input_unreadable:
+                break
 
     # Hardware DV5 path unavailable — retry with software decode + libplacebo.
     #

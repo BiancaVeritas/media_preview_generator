@@ -37,7 +37,7 @@ from typing import Any, cast
 from loguru import logger
 
 from ..logging_config import per_file_logger
-from ..strm import media_input
+from ..strm import is_network_input, media_input
 from ..utils import (
     FFMPEG_LOG_PREFIX,
     dies_with_node,
@@ -492,6 +492,19 @@ def create_ffmpeg_runner(
         # and stop after one frame rather than decoding an interval sequence.
         if chapter_start_ms is not None:
             args += ["-ss", f"{chapter_start_ms / 1000:.3f}"]
+        # A cloud-drive or HTTP source can drop the connection or serve a short read; FFmpeg reopens it instead of
+        # failing the file on the first hiccup. Input options, so they come before -i.
+        if is_network_input(video_file):
+            args += [
+                "-reconnect",
+                "1",
+                "-reconnect_streamed",
+                "1",
+                "-reconnect_delay_max",
+                "5",
+                "-rw_timeout",
+                "30000000",
+            ]
         # Add input file and output options. A .strm file is read through the URL it holds; outputs stay beside it.
         args += [
             "-i",
