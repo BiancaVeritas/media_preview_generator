@@ -3148,6 +3148,20 @@ function updateWorkerStatuses(workers, options = {}) {
         _fallbackStateByWorker.set(w.worker_id, now);
     }
 
+    // Number each worker 1..N inside its own group member. ``worker_id`` is a pool-wide counter that only grows, so
+    // showing it directly made a two-slot CPU group read "#2 #3" after any earlier slots had been created. Sorting by
+    // worker_id keeps a slot's number stable while it lives; a group deleted and re-added starts at #1 again.
+    const memberSlots = new Map();
+    const byMember = new Map();
+    for (const w of workers) {
+        const key = `${String(w.group_id || '')}|${String(w.member_id || '')}`;
+        byMember.set(key, [...(byMember.get(key) || []), w]);
+    }
+    for (const list of byMember.values()) {
+        list.sort((a, b) => (a.worker_id || 0) - (b.worker_id || 0))
+            .forEach((w, index) => memberSlots.set(w.worker_id, index + 1));
+    }
+
     let fallback = container.querySelector('[data-worker-fallback]');
     if (!fallback) {
         fallback = document.createElement('div');
@@ -3199,7 +3213,7 @@ function updateWorkerStatuses(workers, options = {}) {
             // Cosmetic: slightly tighter icon spacing.
             col.querySelector('[data-icon]').classList.add('me-2');
         }
-        _patchWorkerCard(col, worker, anyOnNode);
+        _patchWorkerCard(col, worker, anyOnNode, memberSlots.get(worker.worker_id) || 1);
     }
 
     // Drop any cards for workers that vanished (a job ending, a pool
@@ -3231,7 +3245,7 @@ window.NODE_STATES = Object.freeze({
     disabled: { tone: 'off', label: 'Turned off', short: 'node turned off' },
 });
 
-function _patchWorkerCard(col, worker, anyOnNode = false) {
+function _patchWorkerCard(col, worker, anyOnNode = false, slotNumber = null) {
     const fallbackActive = !!worker.fallback_active;
     const isProcessing = worker.status === 'processing';
     const paused = isProcessing && (processingPaused || worker.paused);
@@ -3265,9 +3279,11 @@ function _patchWorkerCard(col, worker, anyOnNode = false) {
     metrics.hidden = !isProcessing;
     card.dataset.paused = String(!!paused);
     const workerId = col.querySelector('[data-worker-id]');
-    workerId.textContent = `#${worker.worker_id}`;
-    workerId.setAttribute('aria-label', `Worker ID ${worker.worker_id}`);
-    workerId.title = `Worker ID ${worker.worker_id}`;
+    // The badge is the slot's place in its group member (1..N), never the pool-wide worker_id.
+    const shownId = slotNumber || Number(worker.slot_number) || worker.worker_id;
+    workerId.textContent = `#${shownId}`;
+    workerId.setAttribute('aria-label', `Worker ${shownId}`);
+    workerId.title = `Worker ${shownId}`;
     const library = col.querySelector('[data-library]');
     library.textContent = isProcessing ? worker.library_name || '' : '';
     const kind = col.querySelector('[data-worker-kind]');

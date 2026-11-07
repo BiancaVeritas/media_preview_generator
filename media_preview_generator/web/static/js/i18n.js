@@ -352,7 +352,12 @@
         }
         document.documentElement.setAttribute("lang", "zh-CN");
         translateDialogs();
-        translateTree(document.body);
+        // The server already translated this document (see app.py's translate_page). Rewriting every text node again
+        // here is a second full-DOM pass that can repaint a frame of the original labels on each page change. Only
+        // fall back to it for a page served without that marker (e.g. an older cached response).
+        if (document.documentElement.getAttribute("data-i18n") !== "server") {
+            translateTree(document.body);
+        }
         translateTitle();
         observer.observe(document.body, OBSERVE_OPTIONS);
         window.mpgTranslate = translateTree;

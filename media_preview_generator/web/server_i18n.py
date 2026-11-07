@@ -161,11 +161,21 @@ def translate_html(document: str, lang: str) -> str:
 
 
 def _translate_text(text: str, lang: str) -> str:
-    """A text node, translated whole; a node holding only whitespace is returned as it is."""
+    """A text node, translated whole; a node holding only whitespace is returned as it is.
+
+    Text nodes can contain HTML entities (``you&#39;re``, ``Intro &amp; Credits``). Unescape them before looking the
+    label up, and escape the answer back so the document stays valid — otherwise any label with an apostrophe or an
+    ampersand stayed English and the browser-side translator had to fix it after paint (a visible flash).
+    """
     if not text.strip():
         return text
-    translated = translate(text, lang)
-    return text if translated is None else translated
+    lead = text[: len(text) - len(text.lstrip())]
+    tail = text[len(text.rstrip()) :]
+    plain = html_module.unescape(text.strip())
+    translated = translate(plain, lang)
+    if translated is None:
+        return text
+    return lead + html_module.escape(translated, quote=False) + tail
 
 
 def _translate_attributes(tag: str, lang: str) -> str:

@@ -1009,6 +1009,11 @@ def create_app(config_dir: str | None = None) -> Flask:
             return response
         translated = translate_html(body, lang)
         if translated != body:
+            # Mark that this document left the server already translated. The browser-side translator then skips its
+            # full-DOM rewrite at DOMContentLoaded (that rewrite is what shows a frame of the original labels on every
+            # page change) and only handles markup the app writes afterwards, via its innerHTML hooks and observer.
+            if lang == DEFAULT_LANG:
+                translated = translated.replace("<html", '<html data-i18n="server"', 1)
             response.set_data(translated)
             response.headers["Content-Length"] = str(len(response.get_data()))
         return response
