@@ -43,6 +43,8 @@ html[data-bs-theme="light"] { --ov-panel: #fbfcfd; }
 .ov-hint { color: var(--faint); font-size: 12px; line-height: 1.4; margin: 0; }
 .ov-hint .info-icon { margin-left: 6px; vertical-align: middle; }
 .ov-hint.ov-warn { color: var(--warn); }
+/* A control the other option makes irrelevant (processing mode while checking existing previews). */
+.ov-muted { opacity: .5; }
 .ov-err { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--bad); font-size: 12px; font-weight: 600; }
 .ov-err:empty { display: none; }
 .ov-err-box { padding: 10px 12px; border-radius: 10px; background: var(--bad-soft); }

@@ -83,6 +83,8 @@ class Config:
     plex_bif_frame_interval: int
     thumbnail_quality: int
     regenerate_thumbnails: bool
+    # A previews job that first checks the preview already on disk and rebuilds only the ones that can't be right.
+    audit_existing: bool
     sort_by: str | None
 
     # Threading configuration
@@ -518,6 +520,7 @@ def load_config(*, log_validation_errors: bool = True) -> Config:
     thumbnail_quality = get_value("thumbnail_quality", "THUMBNAIL_QUALITY", 4, int)
     tonemap_algorithm = get_value("tonemap_algorithm", "TONEMAP_ALGORITHM", "hable", str).strip().lower()
     regenerate_thumbnails = get_value("regenerate_thumbnails", "REGENERATE_THUMBNAILS", False, bool)
+    audit_existing = get_value("audit_existing", "AUDIT_EXISTING", False, bool)
 
     sort_by_raw = get_value("sort_by", "SORT_BY", "newest", str)
     sort_by = sort_by_raw.strip().lower() if sort_by_raw else "newest"
@@ -708,6 +711,7 @@ def load_config(*, log_validation_errors: bool = True) -> Config:
         thumbnail_quality=thumbnail_quality,
         tonemap_algorithm=tonemap_algorithm,
         regenerate_thumbnails=regenerate_thumbnails,
+        audit_existing=audit_existing,
         sort_by=sort_by,
         gpu_threads=gpu_threads,
         cpu_threads=cpu_threads,
@@ -749,6 +753,7 @@ def load_config(*, log_validation_errors: bool = True) -> Config:
     logger.debug("ffmpeg_threads = {}", config.ffmpeg_threads)
     logger.debug("gpu_config = {} GPU(s) configured", len(config.gpu_config))
     logger.debug("regenerate_thumbnails = {}", config.regenerate_thumbnails)
+    logger.debug("audit_existing = {}", config.audit_existing)
     logger.debug("sort_by = {}", config.sort_by)
 
     return config

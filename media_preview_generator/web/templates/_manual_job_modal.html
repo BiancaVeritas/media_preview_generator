@@ -99,6 +99,16 @@
                             </div>
                             <div class="ov-hint" id="manualProcessingModeHint">Skips files that already have a preview.</div>
                         </div>
+                        <div class="ov-fld" id="manualAuditModeGroup">
+                            <div class="ov-lbl" id="manualAuditModeLabel">Preview check
+                                <button type="button" class="info-icon" data-bs-toggle="tooltip" title="Generate previews as usual, or first check the previews already on disk and rebuild only the ones that can't be right." data-explain-title="Preview check" data-explain-template="infoJobAuditModeTpl" aria-label="About the preview check"><i class="bi bi-info-circle" aria-hidden="true"></i></button>
+                            </div>
+                            <div class="ov-seg" role="radiogroup" aria-labelledby="manualAuditModeLabel">
+                                <span class="ov-seg-opt"><input type="radio" name="manualAuditMode" id="manualAuditOff" value="off" checked><label for="manualAuditOff"><i class="bi bi-play-circle" aria-hidden="true"></i>Normal</label></span>
+                                <span class="ov-seg-opt"><input type="radio" name="manualAuditMode" id="manualAuditOn" value="audit"><label for="manualAuditOn"><i class="bi bi-clipboard-check" aria-hidden="true"></i>Check existing</label></span>
+                            </div>
+                            <div class="ov-hint" id="manualAuditModeHint">Generates previews as usual.</div>
+                        </div>
                         <div class="ov-fld" id="manualMarkersForceGroup" hidden>
                             <label class="ov-switch" for="manualMarkersForce">
                                 <input type="checkbox" id="manualMarkersForce"><span class="ov-track" aria-hidden="true"></span>Re-check files already done

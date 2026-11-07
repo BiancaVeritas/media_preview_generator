@@ -3742,6 +3742,18 @@ function _syncJobDialog(prefix = 'job') {
         modeHint.classList.toggle('ov-warn', !!regenerate);
     }
 
+    const auditing = document.getElementById('jobAuditOn')?.checked;
+    const auditHint = document.getElementById('jobAuditModeHint');
+    if (auditHint) {
+        auditHint.textContent = auditing
+            ? 'Checks the previews already on disk and rebuilds only the ones that are wrong. Existing good previews are kept.'
+            : 'Generates previews as usual.';
+        auditHint.classList.toggle('ov-warn', !!auditing);
+    }
+    // The processing mode means nothing when only the broken previews are rebuilt.
+    const modeGroup = document.getElementById('jobProcessingModeGroup');
+    if (modeGroup) modeGroup.classList.toggle('ov-muted', !!auditing);
+
     const summary = document.getElementById(_JOB_DIALOG_IDS[prefix].summary);
     if (summary) {
         const all = document.getElementById(`${prefix}LibraryAll`)?.checked;
@@ -3817,6 +3829,7 @@ function _showJobKindControls(prefix = 'job') {
         if (el) el.hidden = hidden;
     };
     toggle(`${prefix}ProcessingModeGroup`, !previews);
+    toggle(`${prefix}AuditModeGroup`, !previews);
     toggle(`${prefix}SortByGroup`, !(previews || loudness) || recentlyAdded);
     toggle(`${prefix}MarkersForceGroup`, !markers);
     toggle(`${prefix}ScanFiltersGroup`, recentlyAdded);
@@ -4037,6 +4050,8 @@ function _buildPreviewsJob() {
     const scanFilters = MediaScanFilters.read('job');
     if (scanFilters === null) return null;
     const jobConfig = { force_generate: forceRegenerate, ...scanFilters };
+    // "Check existing" reads the previews already on disk and rebuilds only the ones that can't be right.
+    if (document.getElementById('jobAuditOn')?.checked) jobConfig.audit_existing = true;
     if (sortBy) {
         jobConfig.sort_by = sortBy;
     }

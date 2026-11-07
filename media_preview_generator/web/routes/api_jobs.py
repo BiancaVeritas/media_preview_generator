@@ -931,6 +931,7 @@ def _create_scan_job(
     # overrides, so a key saved here would reach the worker's Config later.
     _ALLOWED_OVERRIDES = {
         *FILTER_CONFIG_KEYS,
+        "audit_existing",
         "force_generate",
         "regenerate_thumbnails",
         "sort_by",
@@ -990,6 +991,9 @@ def create_manual_job() -> Any:
     if not isinstance(raw_paths, list):
         return jsonify({"error": "file_paths must be a list of paths"}), 400
     force_regenerate = _param_to_bool(data.get("force_regenerate"), False)
+    # "Check existing": read the previews already on disk and rebuild only the ones that can't be right (see
+    # previews_audit). Off is the ordinary flow.
+    audit_existing = _param_to_bool(data.get("audit_existing"), False)
     priority = data.get("priority", PRIORITY_NORMAL)
 
     if not raw_paths:
@@ -1021,6 +1025,7 @@ def create_manual_job() -> Any:
         config={
             "webhook_paths": resolved_paths,
             "force_generate": force_regenerate,
+            **({"audit_existing": True} if audit_existing else {}),
         },
         priority=priority,
         server_id=server_id,

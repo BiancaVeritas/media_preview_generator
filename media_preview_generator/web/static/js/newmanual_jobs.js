@@ -76,6 +76,7 @@ function _showManualKindControls(resetDefaults = false) {
     document.getElementById('manualSearchServerGroup').hidden = previews;
     document.getElementById('manualPublishServerGroup').hidden = !previews;
     document.getElementById('manualProcessingModeGroup').hidden = !previews;
+    document.getElementById('manualAuditModeGroup').hidden = !previews;
     document.getElementById('manualMarkersForceGroup').hidden = kind !== 'intro_credits';
     document.getElementById('manualKindHelp').textContent = _MANUAL_KINDS[kind]?.help || '';
     document.getElementById('manualTriggerModal').dataset.kind = kind;
@@ -85,6 +86,7 @@ function _showManualKindControls(resetDefaults = false) {
     if (resetDefaults) {
         document.getElementById('manualPriority').value = previews ? '2' : '3';
         document.getElementById('manualMissingOnly').checked = true;
+        document.getElementById('manualAuditOff').checked = true;
         document.getElementById('manualMarkersForce').checked = false;
         document.getElementById('manualSubmissionError').textContent = '';
     }
@@ -415,6 +417,8 @@ async function startManualJob() {
     const payload = { file_paths: paths, priority };
     if (kind === 'previews') {
         payload.force_regenerate = document.getElementById('manualForceRegenerate').checked;
+        // Checking the existing previews is its own job: it reads each one and rebuilds only what can't be right.
+        payload.audit_existing = document.getElementById('manualAuditOn').checked;
         const serverId = document.getElementById('manualServerScope').value;
         if (serverId) payload.server_id = serverId;
     } else if (kind === 'intro_credits') {

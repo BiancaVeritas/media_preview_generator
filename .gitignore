@@ -96,3 +96,7 @@ docs/benchmark/
 
 # pytest's tmp_path fallback folder, when PYTEST_DEBUG_TEMPROOT is unset
 pytest-of-*/
+
+# Throwaway config folders the local checks make
+tmp[0-9a-z]*/
+mpg-test-config-*/

@@ -662,6 +662,9 @@ class Worker:
                     pause_check=self.pause_check,
                     server_id_filter=per_item_pin,
                     regenerate=resolve_per_item_regenerate(config, item),
+                    # "Check existing" (a previews job's own option): read the preview already on disk and rebuild it
+                    # only when it can't be right.
+                    audit_existing=bool(getattr(config, "audit_existing", False)),
                     phase_callback=_phase_cb,
                     chapter_progress_callback=_chapter_progress_cb,
                     # Radarr/Sonarr deletedFiles[] from upgrade webhooks.
