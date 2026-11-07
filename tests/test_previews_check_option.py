@@ -92,10 +92,11 @@ def test_both_previews_dialogs_offer_it():
 
     for name in ("_start_job_modal.html", "_manual_job_modal.html"):
         page = (root / name).read_text(encoding="utf-8")
-        assert 'id="jobAuditOn"' in page or 'id="manualAuditOn"' in page, name
-        # A switch, matching the other on/off options of the dialog.
-        assert "ov-switch" in page, name
-        assert "Check previews too" in page, name
+        assert 'id="jobAuditMode"' in page or 'id="manualAuditMode"' in page, name
+        # A segmented Off / On control, the same one the priority row uses.
+        assert "ov-seg-select" in page, name
+        assert "Check for broken previews" in page, name
+        assert 'data-seg-default="off"' in page, name
         assert "Check existing" not in page, name
 
 
@@ -113,7 +114,8 @@ def test_the_run_job_dialog_sends_the_flag():
     ).read_text(encoding="utf-8")
 
     assert "jobConfig.audit_existing = true" in app_js
-    assert "payload.audit_existing = document.getElementById('manualAuditOn').checked" in manual_js
+    assert "document.getElementById('jobAuditMode')?.value === 'on'" in app_js
+    assert "payload.audit_existing = document.getElementById('manualAuditMode').value === 'on'" in manual_js
 
 
 def test_the_option_adds_a_check_without_replacing_the_run():

@@ -3742,7 +3742,7 @@ function _syncJobDialog(prefix = 'job') {
         modeHint.classList.toggle('ov-warn', !!regenerate);
     }
 
-    const auditing = document.getElementById('jobAuditOn')?.checked;
+    const auditing = document.getElementById('jobAuditMode')?.value === 'on';
     const auditHint = document.getElementById('jobAuditModeHint');
     if (auditHint) {
         auditHint.textContent = auditing
@@ -3765,8 +3765,13 @@ function _syncJobDialog(prefix = 'job') {
             parts.unshift(filesScope);
         }
         const taskChips = types.map(type => `<span class="ov-task"><i class="bi ${type.icon}" aria-hidden="true"></i>${escapeHtml(type.name)}</span>`).join('');
-        summary.innerHTML = taskChips
-            + `<span>${parts.map(escapeHtml).join(' · ')} · <b>${priorityName}</b></span>`;
+        // One sentence per part (no <b> inside it): the catalogue translates a whole text node, so markup around one
+        // word split the summary and left "All libraries · 普通" half English.
+        const summaryText = parts.join(' · ') + ' · ' + priorityName;
+        // The scope sentence is written on its own, then translated here: a span next to the task chips is a text node
+        // of its own, and the server-side pass has already run by the time this builds it.
+        summary.innerHTML = taskChips + `<span>${escapeHtml(summaryText)}</span>`;
+        window.mpgTranslate?.(summary);
     }
 }
 
@@ -4049,7 +4054,7 @@ function _buildPreviewsJob() {
     if (scanFilters === null) return null;
     const jobConfig = { force_generate: forceRegenerate, ...scanFilters };
     // "Check previews too": the same run also measures each preview already on disk and rebuilds the ones that are wrong.
-    if (document.getElementById('jobAuditOn')?.checked) jobConfig.audit_existing = true;
+    if (document.getElementById('jobAuditMode')?.value === 'on') jobConfig.audit_existing = true;
     if (sortBy) {
         jobConfig.sort_by = sortBy;
     }

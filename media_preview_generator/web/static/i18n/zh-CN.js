@@ -97,6 +97,7 @@ window.__MPG_I18N__["zh-CN"] = {
  "A file's preview frames and markers": "文件的预览帧与标记",
  "A long-lived authentication token. Create one in Emby/Jellyfin admin → Dashboard → API Keys, then paste it here.": "长期有效的认证令牌。请在 Emby/Jellyfin 管理后台 → 仪表盘 → API 密钥中创建一个，然后粘贴到此处。",
  "A mapping that's wrong is found here, with the exact path tried, instead of showing up later as a failed file.": "错误的映射可在此处发现，并会显示实际尝试的路径，而不是稍后表现为文件失败。",
+ "A preview that stops after a few frames, or holds far more frames than the video has intervals, cannot be right: it is deleted and rebuilt in the same run.": "只生成几帧就结束、或帧数远超视频时长所需的预览图，都属于异常：会被删除并在本次任务中重建。",
  "A random token was generated on first startup and saved to": "首次启动时生成了一个随机令牌并保存到",
  "A random token was generated on first startup and saved to inside the container. This maps to whichever host path you mounted as .": "首次启动时会生成一个随机令牌，并保存在容器内的 中。此路径对应你挂载为 的宿主机路径。",
  "A replaced file of the same length keeps the old marker": "被替换但长度相同的文件会保留旧标记",
@@ -366,9 +367,9 @@ window.__MPG_I18N__["zh-CN"] = {
  "Check a real file": "检查真实文件",
  "Check again": "再次检查",
  "Check file": "检查文件",
+ "Check for broken previews": "异常缩略图排查",
  "Check in your config volume.": "请检查你的配置卷。",
  "Check now": "立即检查",
- "Check previews too": "同时检查已有预览图",
  "Check progress": "检查进度",
  "Check servers": "检查服务器",
  "Check servers actions": "检查服务器操作",
@@ -772,6 +773,7 @@ window.__MPG_I18N__["zh-CN"] = {
  "Files": "文件",
  "Files checked at once": "同时检查的文件数",
  "Files view": "文件视图",
+ "Files with no preview at all are generated either way.": "完全没有预览图的文件，两种情况都会生成。",
  "Fill in both paths, or remove the row.": "请填写两个路径，或移除此行。",
  "Film": "电影",
  "Films": "电影",
@@ -1226,6 +1228,7 @@ window.__MPG_I18N__["zh-CN"] = {
  "Mobius — natural colors, good brightness": "Mobius — 色彩自然，亮度良好",
  "Mon": "周一",
  "Mon to Fri": "周一至周五",
+ "More information": "更多信息",
  "Most installs don't need any rows here — leave the table empty if the server and this app mount media at the same paths.": "大多数部署无需在此添加任何行——如果服务器与本应用挂载媒体的路径相同，请将表格留空。",
  "Most installs don't need any rows here.": "大多数部署无需在此添加任何行。",
  "Most recent available seasons": "最近可用的季",
@@ -1398,11 +1401,14 @@ window.__MPG_I18N__["zh-CN"] = {
  "Numbers from the last check that worked": "上次成功检查时的数据",
  "Occupied": "占用中",
  "Off": "关闭",
+ "Off generates previews as usual. On also measures each preview already on disk against its video's runtime and rebuilds the ones that can't be right; files without a preview are generated as usual.": "关闭时按常规流程生成预览图。开启后会额外检查磁盘上已有的预览图，算不对的重建；没有预览图的文件照常生成。",
+ "Off generates previews as usual. On also measures each preview already on disk and rebuilds the ones that can't be right; files without a preview are generated as usual.": "关闭时按常规流程生成预览图。开启后会额外检查磁盘上已有的预览图，算不对的重建；没有预览图的文件照常生成。",
  "Off generates previews as usual: missing ones are made, existing ones are skipped.": "关闭时按常规流程生成：缺失的生成，已有的跳过。",
  "Off keeps previews next to the media; on uses Jellyfin's data folder.": "关闭时预览图保存在媒体旁边；开启时使用 Jellyfin 的数据文件夹。",
  "Off skips files that were already checked.": "关闭时会跳过已检查过的文件。",
  "Off: Library Health shows the counts from its last run until you press Check now.": "关闭时：在您点击“立即检查”之前，媒体库体检会显示上次运行的统计数。",
  "Off: markers a server drops stay missing until you run Check servers yourself.": "关闭时：服务器丢弃的标记会一直缺失，直到您自行运行“检查服务器”。",
+ "Off: previews are generated as usual, so missing ones are made and existing ones are skipped.": "关闭：按常规流程生成预览图，缺失的生成、已有的跳过。",
  "Off: previews are generated as usual.": "关闭：按常规流程生成预览图。",
  "Older interrupted jobs are not re-queued (5 minutes – 24 hours).": "更早被中断的任务不会重新排队（5 分钟 – 24 小时）。",
  "Older results do not distinguish waiting from failure. Open Files for each saved reason.": "较早的结果无法区分等待与失败。请打开“文件”查看每次保存的原因。",
@@ -1413,9 +1419,11 @@ window.__MPG_I18N__["zh-CN"] = {
  "On File Upgrade": "文件升级时",
  "On Import": "导入时",
  "On Upgrade": "升级时",
+ "On also measures each preview already on disk and rebuilds the ones that can't be right.": "开启后还会检查磁盘上已有的预览图，算不对的重建。",
  "On-screen credit text": "屏幕上的片尾文字",
  "On-screen credits read from the video": "从视频中读取的屏幕片尾",
  "On: another server's webhook for the same file reuses the result within the cache window. Off: every webhook runs FFmpeg.": "开启：同一文件在另一台服务器上的 Webhook 会在缓存窗口内复用结果。关闭：每个 Webhook 都会运行 FFmpeg。",
+ "On: the same run also measures each preview already on disk against its video's runtime.": "开启：本次任务还会额外检查磁盘上已有的预览图，与视频时长对比。",
  "One absolute container path per line.": "每行一个容器内的绝对路径。",
  "One absolute container path per line. Directories expand to the media inside. Select at least one path; an empty selection never means all libraries.": "每行一个容器内的绝对路径。目录会展开为其内的媒体。请至少选择一个路径；空选择绝不代表所有媒体库。",
  "One machine can do both.": "一台机器可以同时承担两者。",
@@ -3227,12 +3235,12 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "从历史记录中删除 {0} 个{1}？其日志和结果也会一并删除。"
  ],
  [
-  "{0} now: CPU {1} · GPU {2}{3}. Weekly peak: CPU {4} · GPU {5}{6}. {7}.",
-  "{0} 当前：CPU {1} · GPU {2}{3}。本周峰值：CPU {4} · GPU {5}{6}。{7}。"
- ],
- [
   "Scheduled now: CPU {0} · GPU {1}. Weekly peak: CPU {2} · GPU {3}. UTC.",
   "当前计划：CPU {0} · GPU {1}。每周峰值：CPU {2} · GPU {3}。UTC。"
+ ],
+ [
+  "{0} now: CPU {1} · GPU {2}{3}. Weekly peak: CPU {4} · GPU {5}{6}. {7}.",
+  "{0} 当前：CPU {1} · GPU {2}{3}。本周峰值：CPU {4} · GPU {5}{6}。{7}。"
  ],
  [
   "{0} webhooks waiting — click to jump to the next one in the queue",
@@ -3251,16 +3259,12 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0}：请输入 1–{1} 个工作进程。如需使用零个，请移除设备。"
  ],
  [
-  "These times stay until you go back to automatic. {0}",
-  "这些时间会保留，直到你恢复为自动。{0}"
- ],
- [
   "{0}: select at least one start day for every window.",
   "{0}：请为每个时间窗口至少选择一个起始日。"
  ],
  [
-  "Restore this check to the Recommended bucket — {0}.",
-  "将此检查恢复到推荐分组 — {0}。"
+  "These times stay until you go back to automatic. {0}",
+  "这些时间会保留，直到你恢复为自动。{0}"
  ],
  [
   "Covers {0} of {1} · Regenerate preview to finish it",
@@ -3269,6 +3273,10 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
  [
   "{0} server{1} need attention. Go to server details.",
   "{0} 个服务器需要关注{1}。请前往服务器详情。"
+ ],
+ [
+  "Restore this check to the Recommended bucket — {0}.",
+  "将此检查恢复到推荐分组 — {0}。"
  ],
  [
   "{0}: add a time window or choose Always available.",
@@ -3283,6 +3291,10 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0} 项建议改进{1} — 点击查看"
  ],
  [
+  "{0} groups · {1} occupied. Showing {2} of {3}.",
+  "{0} 个组 · {1} 个占用中。显示 {2}/{3}。"
+ ],
+ [
   "Your servers get ours once this {0} is checked",
   "勾选此{0}后，你的服务器就会采用我们的"
  ],
@@ -3291,20 +3303,16 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "版本 {0}。发行说明，将在新标签页打开"
  ],
  [
-  "{0} groups · {1} occupied. Showing {2} of {3}.",
-  "{0} 个组 · {1} 个占用中。显示 {2}/{3}。"
- ],
- [
   "{0} groups · {1} occupied. Showing {2} of {3}",
   "{0} 个组 · {1} 个占用中。显示 {2}/{3}"
  ],
  [
-  "Every preview frame in order, one every {0}.",
-  "按顺序排列每一帧预览图，每 {0} 一帧。"
- ],
- [
   "Override the recommendation — set {0} to {1}",
   "覆盖建议 — 将 {0} 设为 {1}"
+ ],
+ [
+  "Every preview frame in order, one every {0}.",
+  "按顺序排列每一帧预览图，每 {0} 一帧。"
  ],
  [
   "Written into this Plex server's database{0}",
@@ -3335,52 +3343,48 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0}/{1} 个已配置{2}在 {3} 上忙碌。"
  ],
  [
-  "The {0} {1} to start inside the file.",
-  "{0} {1} 需在文件内开始。"
- ],
- [
-  "Preview in place · trickplay tiles{0}",
-  "就地预览 · 进度条预览图分块{0}"
- ],
- [
   "Through the Plex database node at {0}",
   "通过位于 {0} 的 Plex 数据库节点"
+ ],
+ [
+  "The {0} {1} to start inside the file.",
+  "{0} {1} 需在文件内开始。"
  ],
  [
   "{0} {1} ours once this {2} is checked",
   "检查此{2}后，{0} {1} 我们的"
  ],
  [
+  "Preview in place · trickplay tiles{0}",
+  "就地预览 · 进度条预览图分块{0}"
+ ],
+ [
   "insp-mono insp-season-time insp-t-{0}",
   "insp-mono insp-season-time insp-t-{0}"
- ],
- [
-  "Clear all {0} jobs from the history?",
-  "从历史记录中清除全部 {0} 个任务？"
- ],
- [
-  "{0} shows {1} {2} marker{3}{4} today",
-  "{0} 今天显示 {1} 个{2}标记{3}{4}"
- ],
- [
-  "{0} (not on the Nodes page any more)",
-  "{0}（已不在节点页面上）"
- ],
- [
-  "{0} s from the decision, so not used",
-  "距决策点 {0} 秒，因此未使用"
  ],
  [
   "{0} fell back to CPU for \"{1}\" — {2}",
   "{0} 已回退到 CPU 处理“{1}” — {2}"
  ],
  [
+  "{0} shows {1} {2} marker{3}{4} today",
+  "{0} 今天显示 {1} 个{2}标记{3}{4}"
+ ],
+ [
   "Through a Plex database node: {0}{1}",
   "通过 Plex 数据库节点：{0}{1}"
  ],
  [
-  "Schedule \"{0}\" updated successfully",
-  "计划任务“{0}”更新成功"
+  "Clear all {0} jobs from the history?",
+  "从历史记录中清除全部 {0} 个任务？"
+ ],
+ [
+  "{0} s from the decision, so not used",
+  "距决策点 {0} 秒，因此未使用"
+ ],
+ [
+  "{0} (not on the Nodes page any more)",
+  "{0}（已不在节点页面上）"
  ],
  [
   "Move the {0} {1} one second earlier",
@@ -3391,36 +3395,36 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "计划任务“{0}”创建成功"
  ],
  [
-  "{0} occupied {1} outside this view",
-  "{0} 个已占用，{1} 个在此视图之外"
+  "Schedule \"{0}\" updated successfully",
+  "计划任务“{0}”更新成功"
  ],
  [
-  "{0} {1} an intro · {2} {3} credits",
-  "{0} {1} 片头 · {2} {3} 片尾"
+  "{0} occupied {1} outside this view",
+  "{0} 个已占用，{1} 个在此视图之外"
  ],
  [
   "· {0} have no chapters in the file",
   "· {0} 的文件中没有章节"
  ],
  [
-  "Restored {0} schedule(s) from {1}.",
-  "已从 {1} 恢复 {0} 个计划任务。"
- ],
- [
   "{0}: choose at least one job type.",
   "{0}：请至少选择一种任务类型。"
  ],
  [
-  "{0} show{1} own markers meanwhile",
-  "{0} 同时显示自己的标记{1}"
+  "{0} {1} an intro · {2} {3} credits",
+  "{0} {1} 片头 · {2} {3} 片尾"
+ ],
+ [
+  "Restored {0} schedule(s) from {1}.",
+  "已从 {1} 恢复 {0} 个计划任务。"
  ],
  [
   "Move the {0} {1} one second later",
   "将 {0} {1} 推迟一秒"
  ],
  [
-  "Showing last {0} of {1} log lines",
-  "显示最后 {0} 条日志，共 {1} 条"
+  "{0} show{1} own markers meanwhile",
+  "{0} 同时显示自己的标记{1}"
  ],
  [
   "Runs to the end of the file ({0})",
@@ -3435,8 +3439,8 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "更新 GPU 工作进程失败：{0}"
  ],
  [
-  "Analyzing audio · stream {0}/{1}",
-  "正在分析音频 · 流 {0}/{1}"
+  "Showing last {0} of {1} log lines",
+  "显示最后 {0} 条日志，共 {1} 条"
  ],
  [
   "Not detected — its jobs wait{0}.",
@@ -3447,6 +3451,14 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "此处，节点上有 {0} 个 GPU + {1} 个 CPU"
  ],
  [
+  "Analyzing audio · stream {0}/{1}",
+  "正在分析音频 · 流 {0}/{1}"
+ ],
+ [
+  "A group holds up to {0} devices",
+  "一个工作组最多容纳 {0} 台设备"
+ ],
+ [
   "{0}: loudness runs on CPU only.",
   "{0}：响度仅在 CPU 上运行。"
  ],
@@ -3455,24 +3467,24 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "电视：每部剧集最近 {0} 季"
  ],
  [
-  "A group holds up to {0} devices",
-  "一个工作组最多容纳 {0} 台设备"
- ],
- [
   "{0} was removed in another tab.",
   "{0} 已在另一个标签页中被移除。"
  ],
  [
-  "Checking this {0} decides ours",
-  "查看此 {0} 即决定我们的结果"
+  "Priority: {0}. Change priority",
+  "优先级：{0}。更改优先级"
  ],
  [
   "Couldn't lock these times: {0}",
   "无法锁定这些时间点：{0}"
  ],
  [
-  "Priority: {0}. Change priority",
-  "优先级：{0}。更改优先级"
+  "Checking this {0} decides ours",
+  "查看此 {0} 即决定我们的结果"
+ ],
+ [
+  "Find intros & credits for {0}?",
+  "为 {0} 查找片头与片尾？"
  ],
  [
   "Checking the {0} decides ours.",
@@ -3483,6 +3495,10 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "已锁定 · 之后的检查将保留 {0}"
  ],
  [
+  "Job {0} completed successfully",
+  "任务 {0} 已成功完成"
+ ],
+ [
   "GPU workers for {0} set to {1}",
   "{0} 的 GPU 工作进程已设为 {1}"
  ],
@@ -3491,104 +3507,92 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "无法在此读取画面帧：{0}"
  ],
  [
-  "Job {0} completed successfully",
-  "任务 {0} 已成功完成"
- ],
- [
-  "Find intros & credits for {0}?",
-  "为 {0} 查找片头与片尾？"
- ],
- [
-  "Re-enable GPU ({0} worker{1})",
-  "重新启用 GPU（{0} 个工作进程{1}）"
- ],
- [
-  "CPU workers · CPU · {0} · {1}",
-  "CPU 工作进程 · CPU · {0} · {1}"
- ],
- [
-  "{0} is already in this group.",
-  "{0} 已在当前工作组中。"
- ],
- [
-  "Jump to this point in the {0}",
-  "跳转到{0}中的此位置"
- ],
- [
-  "The {0} {1} to end after {2}.",
-  "{0} {1} 需在 {2} 之后结束。"
+  "{0} (no answer from this app)",
+  "{0}（此应用无响应）"
  ],
  [
   "No libraries to test yet. {0}",
   "还没有可测试的媒体库。{0}"
  ],
  [
-  "{0} (no answer from this app)",
-  "{0}（此应用无响应）"
- ],
- [
-  "{0} {1} · Local time (UTC{2})",
-  "{0} {1} · 本地时间 (UTC{2})"
- ],
- [
   "Ask Plex to show {0} previews",
   "让 Plex 显示 {0} 张预览图"
  ],
  [
-  "Check this {0} to decide ours",
-  "查看此 {0} 来决定我们的结果"
+  "CPU workers · CPU · {0} · {1}",
+  "CPU 工作进程 · CPU · {0} · {1}"
+ ],
+ [
+  "The {0} {1} to end after {2}.",
+  "{0} {1} 需在 {2} 之后结束。"
  ],
  [
   "insp-card insp-message is-{0}",
   "insp-card insp-message is-{0}"
  ],
  [
-  "Publish {0} to {1} server{2}",
-  "将 {0} 发布到 {1} 服务器{2}"
+  "{0} {1} · Local time (UTC{2})",
+  "{0} {1} · 本地时间 (UTC{2})"
+ ],
+ [
+  "Check this {0} to decide ours",
+  "查看此 {0} 来决定我们的结果"
+ ],
+ [
+  "Jump to this point in the {0}",
+  "跳转到{0}中的此位置"
+ ],
+ [
+  "Re-enable GPU ({0} worker{1})",
+  "重新启用 GPU（{0} 个工作进程{1}）"
+ ],
+ [
+  "{0} is already in this group.",
+  "{0} 已在当前工作组中。"
  ],
  [
   "{0} of {1} libraries enabled",
   "{0}/{1} 个媒体库已启用"
  ],
  [
-  "{0} jobs match these filters",
-  "{0} 个任务符合这些筛选条件"
- ],
- [
   "Showing {0} of {1} log lines",
   "显示 {0} 条日志，共 {1} 条"
- ],
- [
-  "Failed to start {0} job: {1}",
-  "启动 {0} 任务失败：{1}"
  ],
  [
   "Agrees with {0}, so {1} kept",
   "与 {0} 一致，因此保留 {1}"
  ],
  [
-  "{0} not on every server yet",
-  "{0} 个尚未在所有服务器上"
+  "Publish {0} to {1} server{2}",
+  "将 {0} 发布到 {1} 服务器{2}"
  ],
  [
-  "Processing finished for {0}",
-  "{0} 处理完成"
+  "Failed to start {0} job: {1}",
+  "启动 {0} 任务失败：{1}"
  ],
  [
-  "{0}: {1}. Its jobs wait{2}.",
-  "{0}：{1}。其任务将等待{2}。"
+  "{0} jobs match these filters",
+  "{0} 个任务符合这些筛选条件"
  ],
  [
   "preview frame {0} of {1}{2}",
   "预览帧 {0} / {1}{2}"
  ],
  [
-  "{0} jobs have been started",
-  "已启动 {0} 个任务"
+  "{0}: {1}. Its jobs wait{2}.",
+  "{0}：{1}。其任务将等待{2}。"
  ],
  [
-  "· {0} can't get thumbnails",
-  "· {0} 无法获取缩略图"
+  "Processing finished for {0}",
+  "{0} 处理完成"
+ ],
+ [
+  "{0} not on every server yet",
+  "{0} 个尚未在所有服务器上"
+ ],
+ [
+  ", drawn {0}on the timeline",
+  "，在时间轴上绘制于 {0}"
  ],
  [
   "{0} groups · {1} occupied.",
@@ -3599,23 +3603,27 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0} 已从 {1} 恢复。{2}"
  ],
  [
-  "{0} server needs attention",
-  "{0} 台服务器需要关注"
+  "Failed to save server: {0}",
+  "保存服务器失败：{0}"
  ],
  [
-  ", drawn {0}on the timeline",
-  "，在时间轴上绘制于 {0}"
+  "· {0} can't get thumbnails",
+  "· {0} 无法获取缩略图"
+ ],
+ [
+  "{0} servers need attention",
+  "{0} 台服务器需要关注"
  ],
  [
   "{0} at {1}, container time",
   "{0} 位于 {1}，容器时间"
  ],
  [
-  "Failed to save server: {0}",
-  "保存服务器失败：{0}"
+  "{0} jobs have been started",
+  "已启动 {0} 个任务"
  ],
  [
-  "{0} servers need attention",
+  "{0} server needs attention",
   "{0} 台服务器需要关注"
  ],
  [
@@ -3623,12 +3631,16 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "安装失败（HTTP {0}）"
  ],
  [
-  "Search failed (HTTP {0})",
-  "搜索失败（HTTP {0}）"
- ],
- [
   "Start a {0} job for {1}?",
   "为 {1} 启动一个 {0} 任务？"
+ ],
+ [
+  "Nothing found for “{0}”.",
+  "未找到“{0}”。"
+ ],
+ [
+  "Search failed (HTTP {0})",
+  "搜索失败（HTTP {0}）"
  ],
  [
   "preview frame {0} of {1}",
@@ -3643,48 +3655,52 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "放弃未保存的 {0}？"
  ],
  [
-  "Nothing found for “{0}”.",
-  "未找到“{0}”。"
- ],
- [
-  "{0} is already selected",
-  "{0} 已被选中"
+  "Intro & Credits for {0}",
+  "{0} 的片头与片尾"
  ],
  [
   "Failed to {0} schedule:",
   "{0}计划任务失败："
  ],
  [
-  "Intro & Credits for {0}",
-  "{0} 的片头与片尾"
+  "{0} not showing in Plex",
+  "{0} 个未在 Plex 中显示"
  ],
  [
   "{0} of {1} show{2} ours",
   "{0}/{1} 个显示为我们的{2}"
  ],
  [
-  "Markers {0} made itself",
-  "{0} 自行生成的标记"
- ],
- [
   "Attempt {0}/{1} running",
   "第 {0}/{1} 次尝试运行中"
+ ],
+ [
+  "Markers {0} made itself",
+  "{0} 自行生成的标记"
  ],
  [
   "{0} system details, {1}",
   "{0} 系统详情，{1}"
  ],
  [
-  "{0} not showing in Plex",
-  "{0} 个未在 Plex 中显示"
+  "{0} is already selected",
+  "{0} 已被选中"
  ],
  [
   "server-status-text-{0}",
   "server-status-text-{0}"
  ],
  [
+  "This {0} has {1} files",
+  "此{0}有 {1} 个文件"
+ ],
+ [
   "Couldn't queue it: {0}",
   "无法加入队列：{0}"
+ ],
+ [
+  "Auth failed (HTTP {0})",
+  "认证失败（HTTP {0}）"
  ],
  [
   "Added in last {0} days",
@@ -3695,20 +3711,24 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0} 未保存任何内容。"
  ],
  [
-  "Auth failed (HTTP {0})",
-  "认证失败（HTTP {0}）"
+  "Webhook firing in {0}s",
+  "Webhook 将在 {0} 秒后触发"
  ],
  [
   "server-health-note-{0}",
   "server-health-note-{0}"
  ],
  [
-  "This {0} has {1} files",
-  "此{0}有 {1} 个文件"
+  "Start {0} job for {1}",
+  "为 {1} 启动 {0} 任务"
  ],
  [
-  "Webhook firing in {0}s",
-  "Webhook 将在 {0} 秒后触发"
+  "{0}: no files to test",
+  "{0}：没有可测试的文件"
+ ],
+ [
+  "Lock these times? {0}",
+  "锁定这些时间点吗？{0}"
  ],
  [
   "{0} {1} these filters",
@@ -3719,6 +3739,14 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "添加时间 {0} 至 {1}"
  ],
  [
+  "{0} schedules enabled",
+  "{0} 个已启用的计划任务"
+ ],
+ [
+  "{0} need{1} attention",
+  "{0} 项需要关注{1}"
+ ],
+ [
   "Delete finished ({0})",
   "删除已完成（{0}）"
  ],
@@ -3727,136 +3755,128 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0} · 测试解码 {1}"
  ],
  [
-  "{0} schedules enabled",
-  "{0} 个已启用的计划任务"
- ],
- [
   "{0} · {1} · {2} · {3}",
   "{0} · {1} · {2} · {3}"
- ],
- [
-  "Lock these times? {0}",
-  "锁定这些时间点吗？{0}"
- ],
- [
-  "{0} need{1} attention",
-  "{0} 项需要关注{1}"
- ],
- [
-  "{0}: no files to test",
-  "{0}：没有可测试的文件"
  ],
  [
   "Found {0} working {1}",
   "找到 {0} 个可用的 {1}"
  ],
  [
-  "Start {0} job for {1}",
-  "为 {1} 启动 {0} 任务"
- ],
- [
   "{0} libraries enabled",
   "{0} 个已启用的媒体库"
- ],
- [
-  "{0} webhooks pending",
-  "{0} 个 Webhook 等待中"
- ],
- [
-  "Cleared {0} {1} jobs",
-  "已清除 {0} 个{1}任务"
- ],
- [
-  "Intro & Credits: {0}",
-  "片头与片尾：{0}"
- ],
- [
-  "{0} worker idle #{1}",
-  "{0} 个工作进程空闲 #{1}"
- ],
- [
-  "{0} has been started",
-  "{0} 已启动"
- ],
- [
-  "Lock and send to {0}",
-  "锁定并发送到 {0}"
- ],
- [
-  "{0} of {1} connected",
-  "已连接 {0}/{1}"
  ],
  [
   "{0} item{1} selected",
   "已选中 {0} 项{1}"
  ],
  [
-  "Save and send to {0}",
-  "保存并发送到 {0}"
+  "{0} has been started",
+  "{0} 已启动"
  ],
  [
-  "Show all {0} workers",
-  "显示全部 {0} 个工作进程"
- ],
- [
-  "Preview frame at {0}",
-  "预览帧位于 {0}"
- ],
- [
-  "server-readiness-{0}",
-  "server-readiness-{0}"
- ],
- [
-  "set the {0} {1} here",
-  "在此设置 {0} {1}"
+  "Intro & Credits: {0}",
+  "片头与片尾：{0}"
  ],
  [
   "active-job-files-{0}",
   "active-job-files-{0}"
  ],
  [
-  "See frame {0} large",
-  "查看第 {0} 帧大图"
+  "set the {0} {1} here",
+  "在此设置 {0} {1}"
  ],
  [
-  "Job {0} failed: {1}",
-  "任务 {0} 失败：{1}"
+  "Cleared {0} {1} jobs",
+  "已清除 {0} 个{1}任务"
  ],
  [
-  "{0} on the next job",
-  "{0} 在下一个任务上"
+  "Save and send to {0}",
+  "保存并发送到 {0}"
  ],
  [
-  "Preview in place{0}",
-  "就地预览{0}"
+  "server-readiness-{0}",
+  "server-readiness-{0}"
+ ],
+ [
+  "{0} of {1} connected",
+  "已连接 {0}/{1}"
+ ],
+ [
+  "{0} webhooks pending",
+  "{0} 个 Webhook 等待中"
+ ],
+ [
+  "Preview frame at {0}",
+  "预览帧位于 {0}"
+ ],
+ [
+  "{0} worker idle #{1}",
+  "{0} 个工作进程空闲 #{1}"
+ ],
+ [
+  "Show all {0} workers",
+  "显示全部 {0} 个工作进程"
+ ],
+ [
+  "Lock and send to {0}",
+  "锁定并发送到 {0}"
  ],
  [
   "· {0} can't be read",
   "· {0} 无法读取"
  ],
  [
+  "Whole library · {0}",
+  "整个媒体库 · {0}"
+ ],
+ [
   "Movies: through {0}",
   "电影：截至 {0}"
- ],
- [
-  "{0} on every server",
-  "{0} 在所有服务器上"
- ],
- [
-  "Movies: {0} onwards",
-  "电影：{0} 起"
  ],
  [
   "Recently added, {0}",
   "最近添加，{0}"
  ],
  [
-  "{0}'s own {1} here",
-  "{0} 自己的 {1} 在此"
+  "Preview in place{0}",
+  "就地预览{0}"
  ],
  [
-  "{0} · Setup Health",
-  "{0} · 设置体检"
+  "Job {0} failed: {1}",
+  "任务 {0} 失败：{1}"
+ ],
+ [
+  "All libraries · {0}",
+  "所有媒体库 · {0}"
+ ],
+ [
+  "{0} on every server",
+  "{0} 在所有服务器上"
+ ],
+ [
+  "See frame {0} large",
+  "查看第 {0} 帧大图"
+ ],
+ [
+  "{0} on the next job",
+  "{0} 在下一个任务上"
+ ],
+ [
+  "{0} libraries · {1}",
+  "{0} 个媒体库 · {1}"
+ ],
+ [
+  "Movies: {0} onwards",
+  "电影：{0} 起"
+ ],
+ [
+  "{0} — not detected",
+  "{0} — 未检测到"
+ ],
+ [
+  "Failed to run {0}:",
+  "运行 {0} 失败："
  ],
  [
   "Ready · {0} frames",
@@ -3867,100 +3887,140 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "server-checked-{0}"
  ],
  [
-  "Forward {0} frames",
-  "前进 {0} 帧"
- ],
- [
-  "Plex loudness: {0}",
-  "Plex 响度：{0}"
- ],
- [
-  "Failed to run {0}:",
-  "运行 {0} 失败："
- ],
- [
-  "Search failed: {0}",
-  "搜索失败：{0}"
- ],
- [
   "server-enabled-{0}",
   "server-enabled-{0}"
  ],
  [
-  "worker group \"{0}\"",
-  "工作组“{0}”"
- ],
- [
-  "{0} — not detected",
-  "{0} — 未检测到"
+  "{0} · Setup Health",
+  "{0} · 设置体检"
  ],
  [
   "Couldn't save: {0}",
   "无法保存：{0}"
  ],
  [
-  "{0} · not working",
-  "{0} · 未工作"
+  "Plex loudness: {0}",
+  "Plex 响度：{0}"
  ],
  [
-  "No preview yet{0}",
-  "还没有预览图{0}"
+  "worker group \"{0}\"",
+  "工作组“{0}”"
+ ],
+ [
+  "Forward {0} frames",
+  "前进 {0} 帧"
+ ],
+ [
+  "Search failed: {0}",
+  "搜索失败：{0}"
+ ],
+ [
+  "{0}'s own {1} here",
+  "{0} 自己的 {1} 在此"
  ],
  [
   "Job {0} cancelled",
   "任务 {0} 已取消"
  ],
  [
-  "{0} (not allowed)",
-  "{0}（不允许）"
- ],
- [
   "Every {0} minutes",
   "每 {0} 分钟"
- ],
- [
-  "Results for “{0}”",
-  "“{0}”的结果"
- ],
- [
-  "Preview frame {0}",
-  "预览帧 {0}"
- ],
- [
-  "· {0} not working",
-  "· {0} 未工作"
- ],
- [
-  "{0}{1} set by you",
-  "{0}{1} 由你设置"
- ],
- [
-  "Plex server \"{0}\"",
-  "Plex 服务器“{0}”"
- ],
- [
-  "server-status-{0}",
-  "server-status-{0}"
- ],
- [
-  "{0} {1} them now.",
-  "{0} 现在{1}它们。"
  ],
  [
   "Setup steps ({0})",
   "设置步骤（{0}）"
  ],
  [
+  "{0} {1} them now.",
+  "{0} 现在{1}它们。"
+ ],
+ [
+  "{0}{1} set by you",
+  "{0}{1} 由你设置"
+ ],
+ [
+  "{0} · not working",
+  "{0} · 未工作"
+ ],
+ [
+  "{0} library · {1}",
+  "{0} 个媒体库 · {1}"
+ ],
+ [
   "CPU workers · {0}",
   "CPU 工作进程 · {0}"
+ ],
+ [
+  "Preview frame {0}",
+  "预览帧 {0}"
+ ],
+ [
+  "{0} (not allowed)",
+  "{0}（不允许）"
+ ],
+ [
+  "Plex server \"{0}\"",
+  "Plex 服务器“{0}”"
+ ],
+ [
+  "· {0} not working",
+  "· {0} 未工作"
+ ],
+ [
+  "No preview yet{0}",
+  "还没有预览图{0}"
+ ],
+ [
+  "Results for “{0}”",
+  "“{0}”的结果"
+ ],
+ [
+  "server-status-{0}",
+  "server-status-{0}"
  ],
  [
   "Set by you on {0}",
   "由你在 {0} 设置"
  ],
  [
+  "server-error-{0}",
+  "server-error-{0}"
+ ],
+ [
+  "Runs on node {0}",
+  "在节点 {0} 上运行"
+ ],
+ [
+  "Used for the {0}",
+  "用于{0}"
+ ],
+ [
   "{0} was removed.",
   "{0} 已被移除。"
+ ],
+ [
+  "node:{0}:gpu:{1}",
+  "node:{0}:gpu:{1}"
+ ],
+ [
+  "{0} workers idle",
+  "{0} 个工作进程空闲"
+ ],
+ [
+  "Last checked {0}",
+  "上次检查 {0}"
+ ],
+ [
+  "last {0} minutes",
+  "最近 {0} 分钟"
+ ],
+ [
+  "Loudness for {0}",
+  "{0} 的响度"
+ ],
+ [
+  "{0} of {1} lines",
+  "{0}/{1} 行"
  ],
  [
   "Looks like a {0}",
@@ -3971,60 +4031,40 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "job-{0}-logs.txt"
  ],
  [
-  "Runs on node {0}",
-  "在节点 {0} 上运行"
+  "· one every {0}",
+  "· 每 {0} 一个"
  ],
  [
-  "Loudness for {0}",
-  "{0} 的响度"
+  "{0} CPU workers",
+  "{0} 个 CPU 工作进程"
  ],
  [
-  "Last checked {0}",
-  "上次检查 {0}"
- ],
- [
-  "server-error-{0}",
-  "server-error-{0}"
- ],
- [
-  "last {0} minutes",
-  "最近 {0} 分钟"
- ],
- [
-  "{0} workers idle",
-  "{0} 个工作进程空闲"
- ],
- [
-  "Used for the {0}",
-  "用于{0}"
- ],
- [
-  "{0} of {1} lines",
-  "{0}/{1} 行"
- ],
- [
-  "node:{0}:gpu:{1}",
-  "node:{0}:gpu:{1}"
- ],
- [
-  "Job {0} created",
-  "任务 {0} 已创建"
+  "{0} · not found",
+  "{0} · 未找到"
  ],
  [
   "these {0} files",
   "这 {0} 个文件"
  ],
  [
-  "· one every {0}",
-  "· 每 {0} 一个"
+  "Next pause {0}.",
+  "下次暂停 {0}。"
  ],
  [
   "{0} worker idle",
   "{0} 个工作进程空闲"
  ],
  [
+  "{0} · {1} · {2}",
+  "{0} · {1} · {2}"
+ ],
+ [
   "Back {0} frames",
   "后退 {0} 帧"
+ ],
+ [
+  "Job {0} created",
+  "任务 {0} 已创建"
  ],
  [
   "Every {0} hours",
@@ -4039,44 +4079,36 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0} 个 GPU 工作进程"
  ],
  [
-  "{0} · not found",
-  "{0} · 未找到"
- ],
- [
-  "{0} CPU workers",
-  "{0} 个 CPU 工作进程"
- ],
- [
-  "Next pause {0}.",
-  "下次暂停 {0}。"
- ],
- [
-  "{0} · {1} · {2}",
-  "{0} · {1} · {2}"
- ],
- [
-  "Start {0} jobs",
-  "启动 {0} 个任务"
- ],
- [
-  "{0} / {1} busy",
-  "{0} / {1} 忙碌"
+  "Clear {0} jobs",
+  "清除 {0} 个任务"
  ],
  [
   "Add {0} server",
   "添加 {0} 服务器"
  ],
  [
-  "Clear {0} jobs",
-  "清除 {0} 个任务"
- ],
- [
   "{0} · this one",
   "{0} · 这一个"
  ],
  [
+  "Start {0} jobs",
+  "启动 {0} 个任务"
+ ],
+ [
   "{0}'s own only",
   "仅 {0} 自己的"
+ ],
+ [
+  "{0} / {1} busy",
+  "{0} / {1} 忙碌"
+ ],
+ [
+  "{0} free temp",
+  "{0} 空闲临时空间"
+ ],
+ [
+  "{0} available",
+  "{0} 个可用"
  ],
  [
   "{0} CPU cores",
@@ -4085,10 +4117,6 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
  [
   "Show {0} more",
   "再显示 {0} 个"
- ],
- [
-  "{0} available",
-  "{0} 个可用"
  ],
  [
   "{0} snapshots",
@@ -4107,40 +4135,36 @@ window.__MPG_I18N_PATTERNS__["zh-CN"] = [
   "{0} 个文件已运行"
  ],
  [
-  "{0} free temp",
-  "{0} 空闲临时空间"
+  "edit-tab-{0}",
+  "edit-tab-{0}"
  ],
  [
   "node:{0}:cpu",
   "node:{0}:cpu"
  ],
  [
-  "{0} must fix",
-  "{0} 项必须修复"
- ],
- [
-  "edit-tab-{0}",
-  "edit-tab-{0}"
- ],
- [
   "Show all {0}",
   "显示全部 {0}"
  ],
  [
-  "{0} servers",
-  "{0} 台服务器"
+  "{0} must fix",
+  "{0} 项必须修复"
  ],
  [
   "srv-dot {0}",
   "srv-dot {0}"
  ],
  [
+  "Version {0}",
+  "版本 {0}"
+ ],
+ [
   "{0} enabled",
   "已启用 {0} 项"
  ],
  [
-  "Version {0}",
-  "版本 {0}"
+  "{0} servers",
+  "{0} 台服务器"
  ],
  [
   "{0} min ago",

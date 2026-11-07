@@ -216,7 +216,7 @@ window.OverlaySegments = (() => {
             button.type = 'button';
             button.setAttribute('role', 'radio');
             button.dataset.value = option.value;
-            button.innerHTML = `${option.textContent.replace(/ \(from Settings\)$/, '')}<span class="ov-def" hidden>default</span>`;
+            button.innerHTML = `${option.textContent.replace(/ \(from Settings\)$/, '')}<span class="ov-def" hidden>默认</span>`;
             button.addEventListener('click', () => choose(select, option.value));
             group.appendChild(button);
         }

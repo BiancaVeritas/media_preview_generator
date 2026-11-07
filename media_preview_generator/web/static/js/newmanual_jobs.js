@@ -86,7 +86,7 @@ function _showManualKindControls(resetDefaults = false) {
     if (resetDefaults) {
         document.getElementById('manualPriority').value = previews ? '2' : '3';
         document.getElementById('manualMissingOnly').checked = true;
-        document.getElementById('manualAuditOn').checked = false;
+        document.getElementById('manualAuditMode').value = 'off';
         document.getElementById('manualMarkersForce').checked = false;
         document.getElementById('manualSubmissionError').textContent = '';
     }
@@ -418,7 +418,7 @@ async function startManualJob() {
     if (kind === 'previews') {
         payload.force_regenerate = document.getElementById('manualForceRegenerate').checked;
         // On: the same run also measures each preview already on disk and rebuilds the ones that can't be right.
-        payload.audit_existing = document.getElementById('manualAuditOn').checked;
+        payload.audit_existing = document.getElementById('manualAuditMode').value === 'on';
         const serverId = document.getElementById('manualServerScope').value;
         if (serverId) payload.server_id = serverId;
     } else if (kind === 'intro_credits') {

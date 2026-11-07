@@ -100,10 +100,13 @@
                             <div class="ov-hint" id="manualProcessingModeHint">Skips files that already have a preview.</div>
                         </div>
                         <div class="ov-fld" id="manualAuditModeGroup">
-                            <label class="ov-switch" for="manualAuditOn">
-                                <input type="checkbox" id="manualAuditOn"><span class="ov-track" aria-hidden="true"></span>Check previews too
-                                <button type="button" class="info-icon" data-bs-toggle="tooltip" title="Measures the preview already on disk against the video's runtime and rebuilds it when it can't be right. Files without a preview are generated as usual." data-explain-title="Check previews too" data-explain-template="infoJobAuditModeTpl" aria-label="About checking previews too"><i class="bi bi-info-circle" aria-hidden="true"></i></button>
-                            </label>
+                            <div class="ov-lbl" id="manualAuditModeLabel">Check for broken previews
+                                <button type="button" class="info-icon" data-bs-toggle="tooltip" title="Off generates previews as usual. On also measures each preview already on disk against its video's runtime and rebuilds the ones that can't be right; files without a preview are generated as usual." data-explain-title="Check for broken previews" data-explain-template="infoJobAuditModeTpl" aria-label="About checking for broken previews"><i class="bi bi-info-circle" aria-hidden="true"></i></button>
+                            </div>
+                            <select class="form-select ov-seg-select" id="manualAuditMode" data-seg-default="off">
+                                <option value="off" selected>Off</option>
+                                <option value="on">On</option>
+                            </select>
                             <div class="ov-hint" id="manualAuditModeHint">Off: previews are generated as usual.</div>
                         </div>
                         <div class="ov-fld" id="manualMarkersForceGroup" hidden>

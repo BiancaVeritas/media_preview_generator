@@ -33,6 +33,9 @@ _ATTR_RE = re.compile(
     r"""\b(title|placeholder|aria-label|alt|data-bs-title|data-bs-original-title|value)\s*=\s*"([^"]*)\"""",
     re.IGNORECASE,
 )
+#: An ``<option value="…">`` value is the value the app compares and submits, never a label: translating it broke the
+#: segmented control built over a ``<select>`` (its buttons compared "关闭" against the option's own value).
+_OPTION_TAG_RE = re.compile(r"^<\s*option\b", re.IGNORECASE)
 _TAG_NAME_RE = re.compile(r"<\s*/?\s*([A-Za-z][A-Za-z0-9-]*)")
 _SLOT_RE = re.compile(r"\{(\d+)\}")
 
@@ -163,10 +166,17 @@ def _translate_text(text: str, lang: str) -> str:
 
 
 def _translate_attributes(tag: str, lang: str) -> str:
-    """The ``title``/``placeholder``/``aria-label``/``alt``/``value`` of one tag, translated in place."""
+    """The ``title``/``placeholder``/``aria-label``/``alt``/``value`` of one tag, translated in place.
+
+    An ``<option value="…">`` keeps its value: the app compares and submits that string, so translating it turns the
+    segmented control's buttons into labels that no longer match their option.
+    """
+    is_option = bool(_OPTION_TAG_RE.match(tag))
 
     def replace(match: re.Match[str]) -> str:
         name, value = match.group(1), match.group(2)
+        if is_option and name.lower() == "value":
+            return match.group(0)
         translated = translate(html_module.unescape(value), lang)
         if translated is None:
             return match.group(0)

@@ -843,7 +843,10 @@
         const nodesPeak = capacity.nodes_peak || {};
         const onNodes = (nodesPeak.cpu || 0) + (nodesPeak.gpu || 0) > 0;
         const nodePart = (counts) => onNodes ? ` here, ${counts.gpu || 0} GPU + ${counts.cpu || 0} CPU on nodes` : '';
-        document.getElementById('workerGroupCapacity').textContent = capacity.current && capacity.peak ? `${dirty ? 'Saved schedule' : 'Scheduled'} now: CPU ${capacity.current.cpu} · GPU ${capacity.current.gpu}${nodePart(nodesNow)}. Weekly peak: CPU ${capacity.peak.cpu} · GPU ${capacity.peak.gpu}${nodePart(nodesPeak)}. ${timezoneLabel()}.` : '';
+        // One sentence, with the timezone in it as text rather than a separate node: the catalogue translates a whole
+        // text node, so appending the label after a full stop left the sentence half translated.
+        document.getElementById('workerGroupCapacity').textContent = capacity.current && capacity.peak ? `${dirty ? 'Saved schedule' : 'Scheduled'} now: CPU ${capacity.current.cpu} · GPU ${capacity.current.gpu}${nodePart(nodesNow)}. Weekly peak: CPU ${capacity.peak.cpu} · GPU ${capacity.peak.gpu}${nodePart(nodesPeak)}. ${timezoneLabel()}` : '';
+        window.mpgTranslate?.(document.getElementById('workerGroupCapacity'));
         renderRows(document.getElementById('workerGroupRows'));
         renderWeekOverview(draft || snapshot.groups);
         paintEditorPreview();
