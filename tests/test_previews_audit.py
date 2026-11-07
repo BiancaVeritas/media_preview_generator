@@ -8,11 +8,7 @@ from pathlib import Path
 import pytest
 
 from media_preview_generator.bif_reader import BIF_MAGIC
-from media_preview_generator.previews_audit import (
-    MIN_HEALTHY_FRAME_SHARE,
-    check_preview,
-    scan_folder,
-)
+from media_preview_generator.previews_audit import check_preview, scan_folder
 
 INTERVAL_MS = 10_000
 
