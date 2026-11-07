@@ -173,6 +173,12 @@ FFMPEG_STALL_TIMEOUT_SEC = 300
 # everything before them. The trade-off: such a GPU run publishes without falling back to the CPU even when up to 5%
 # of the tail is missing.
 PUBLISH_MIN_FRAME_RATIO = 0.95
+# A CPU run of its own that stopped early still publishes its frames when it got at least this share of the expected
+# ones (a truncated file fails the same way on every scan, and a nearly-complete preview beats decoding it again). A run
+# that stopped near its start is not a short preview of the file: it is a read that died (a cloud-drive link that served
+# its opening and then nothing), so its frames are discarded and the file fails, visibly, instead of publishing a
+# one-frame preview that looks like a complete one.
+PUBLISH_CPU_MIN_FRAME_SHARE = 0.25
 # What FFmpeg itself exits with once it handled a SIGTERM or SIGINT: stopped from outside, wherever it was.
 FFMPEG_SIGNALLED_EXIT = 255
 # AVERROR(EIO): a read or write failed. A GPU decoder or an OpenCL filter that fails exits with it too; only the stderr
@@ -1580,6 +1586,25 @@ def _probe_video_end_seconds(video_file: str, stated_duration_s: float) -> float
     return max(times) - start_s
 
 
+def is_a_share_of_a_run(count: int, expected: float | None) -> bool:
+    """Whether ``count`` frames are a short-but-real run of the file, not one that died at its start.
+
+    Two frames of a four-second clip are a whole run; two of a two-hour film are a read that stopped at its first
+    packet. The share is what tells them apart, and a file whose runtime is unknown (no ``expected``) publishes as it
+    always did: nothing says its few frames are wrong.
+
+    Args:
+        count: Frames the run wrote.
+        expected: Frames a complete run writes (runtime / thumbnail interval), or None when the runtime is unknown.
+
+    Returns:
+        True when the frames may be published as a short preview.
+    """
+    if not expected or expected <= 2:
+        return True
+    return count / expected >= PUBLISH_CPU_MIN_FRAME_SHARE
+
+
 def _warn_if_frame_count_disagrees_with_duration(
     video_file: str,
     output_folder: str,
@@ -2530,7 +2555,7 @@ def generate_images(
                 video_file,
             )
             return count
-        elif gpu is None:
+        elif gpu is None and is_a_share_of_a_run(count, expected_frames):
             logger.warning(
                 "FFmpeg exited with code {} on CPU after writing {} thumbnails{} for {} — publishing them, but the "
                 "preview may be short. The file is likely truncated or damaged; try playing it to check.",
@@ -2540,6 +2565,17 @@ def generate_images(
                 video_file,
             )
             return count
+        elif gpu is None:
+            logger.warning(
+                "FFmpeg exited with code {} on CPU after writing only {} of the {} thumbnails for {} — discarding "
+                "them. A run that stops this near the start did not read the file, so this is not a short preview of "
+                "it: the source stopped answering, or it is damaged. The file is reported as failed and will be "
+                "tried again.",
+                rc,
+                count,
+                expected_frames or "?",
+                video_file,
+            )
         else:
             logger.warning(
                 "FFmpeg exited with code {} on the GPU after writing {} thumbnails{} for {} — discarding them so "
@@ -2627,8 +2663,24 @@ def generate_images(
 
     # A source read over HTTP (a .strm file's cloud-drive link, an HTTP share) can serve a broken or short answer once:
     # a dropped connection leaves the MP4 index half-read ("contradictionary STSC and STCO"), and the same URL opens
-    # fine a moment later. Every other tier re-reads the same bytes, so this is its own retry on a fresh connection.
-    if input_unreadable and image_count == 0 and is_network_input(video_file):
+    # fine a moment later. It can also serve the opening of the file and nothing after it, which decodes as one frame
+    # and then a muxer error. Every other tier re-reads the same answer, so this is its own retry on a fresh connection.
+    def _read_died_early(count: int) -> bool:
+        """Whether this run got only the opening of the file, not enough frames to be a preview of it.
+
+        Either the run wrote nothing, or it wrote so few frames that the source clearly stopped answering partway:
+        the opening decoded (sometimes as few as one frame, and FFmpeg can still exit 0 on that), then the rest of the
+        file never arrived. A file whose runtime is unknown can't be judged this way.
+        """
+        if count == 0:
+            return True
+        return not no_decoder and not is_a_share_of_a_run(count, expected_frames)
+
+    def _network_read_died(count: int) -> bool:
+        """Whether a network source answered with too little of the file (see ``_read_died_early``)."""
+        return is_network_input(video_file) and _read_died_early(count)
+
+    if not partial_discarded and _network_read_died(image_count):
         for attempt, wait_s in enumerate(NETWORK_INPUT_RETRY_DELAYS_S, start=1):
             if cancel_check and cancel_check():
                 raise CancellationError(f"Processing cancelled for {video_file}")
@@ -2652,8 +2704,32 @@ def generate_images(
             input_unreadable = video_input_unreadable(
                 rc, stderr_lines, frames_written=image_count > 0 or partial_discarded
             )
-            if image_count > 0 or not input_unreadable:
+            if not _network_read_died(image_count):
                 break
+
+    # A run that exits 0 having read only the opening of the file is not a success: a cloud-drive link that served its
+    # first packet and nothing more leaves exactly one thumbnail behind, and publishing it makes a preview that covers
+    # ten seconds of a two-hour film look finished. It is handled like a run that wrote nothing, so the tiers above and
+    # the failure below all see it.
+    content_runs_full_length = False
+    if image_count > 0 and not partial_discarded and rc == 0 and _read_died_early(image_count):
+        # Only when the file really holds that much video: a genuinely truncated file is short on disk too, and its
+        # short preview is the best this file will ever give. A file whose content runs its stated length but gave us
+        # one frame is one we failed to read.
+        stated = _video_duration_seconds(media_info)
+        content_end = _probe_video_end_seconds(video_file, stated) if stated else None
+        content_runs_full_length = content_end is not None and content_end >= stated - 2 * config.plex_bif_frame_interval
+    if content_runs_full_length:
+        logger.warning(
+            "FFmpeg exited cleanly after reading only {} of the {} thumbnails for {} — the source stopped answering "
+            "partway, so those frames are discarded rather than published as a preview that ends ten seconds in.",
+            image_count,
+            expected_frames or "?",
+            video_file,
+        )
+        _clean_output_images(output_folder)
+        partial_discarded = True
+        image_count = 0
 
     # Hardware DV5 path unavailable — retry with software decode + libplacebo.
     #
