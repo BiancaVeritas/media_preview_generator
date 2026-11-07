@@ -168,3 +168,37 @@ def test_scan_folder_finds_only_the_broken_one(tmp_path, monkeypatch):
     problems = scan_folder(str(tmp_path))
 
     assert [Path(p.preview_path).name for p in problems] == ["bad-320-10.bif"]
+
+
+class TestOverCount:
+    """A BIF holding far more frames than its runtime has intervals (an old FFmpeg repeating one picture)."""
+
+    def test_a_bif_with_far_too_many_frames_is_reported(self, tmp_path, monkeypatch, media):
+        source, _ = media("film.mkv", 7200)
+        preview = _write_bif(tmp_path / "film-320-10.bif", 7200)  # one frame a second, not every ten
+        _stub_runtime(monkeypatch, 7200)
+
+        problem = check_preview(str(source), str(preview))
+
+        assert problem is not None
+        assert "7200" in problem.reason
+        assert "720" in problem.reason
+
+    def test_just_over_the_ceiling_is_reported(self, tmp_path, monkeypatch, media):
+        source, _ = media("film.mkv", 600)
+        preview = _write_bif(tmp_path / "film-320-10.bif", 95)  # 60 expected, 158%
+        _stub_runtime(monkeypatch, 600)
+
+        assert check_preview(str(source), str(preview)) is not None
+
+    def test_a_complete_preview_is_not_called_excessive(self, tmp_path, monkeypatch, media):
+        source, _ = media("film.mkv", 600)
+        preview = _write_bif(tmp_path / "film-320-10.bif", 61)  # 60 expected plus a tail frame
+        _stub_runtime(monkeypatch, 600)
+
+        assert check_preview(str(source), str(preview)) is None
+
+    def test_the_ceiling_is_150_percent(self):
+        from media_preview_generator.previews_audit import MAX_HEALTHY_FRAME_SHARE
+
+        assert MAX_HEALTHY_FRAME_SHARE == 1.5

@@ -38,6 +38,11 @@ MIN_HEALTHY_FRAME_SHARE = 0.95
 #: is normal; a quarter of an hour is not. This catches a stop part-way on a long film that 95% alone would let through
 #: (95% of a three-hour file still hides 9 minutes).
 SHORTFALL_TOLERANCE_S = 300
+#: A preview holding more than this share of the frames its runtime asks for is wrong too: a writer that can't read the
+#: runtime (an older FFmpeg, a container whose index it can't parse) falls back to a frame every second or every tick,
+#: filling the BIF with the same picture and growing it past a gigabyte for a film. Nothing a healthy run writes comes
+#: near this: the frames sit at one per interval, so 100% is the ceiling and a tail lost to a decoder only lowers it.
+MAX_HEALTHY_FRAME_SHARE = 1.5
 #: Files this short have so few thumbnails that the share can't tell a good preview from a bad one, so they are skipped.
 MIN_AUDIT_DURATION_S = 60
 
@@ -128,7 +133,23 @@ def check_preview(media_path: str, preview_path: str, *, default_interval_s: int
         return None
     covered_s = metadata.frame_count * interval_s
     shortfall_s = runtime_s - covered_s
-    if metadata.frame_count / expected >= MIN_HEALTHY_FRAME_SHARE and shortfall_s <= SHORTFALL_TOLERANCE_S:
+    share = metadata.frame_count / expected
+    if share > MAX_HEALTHY_FRAME_SHARE:
+        # The BIF says its frames are one interval apart, but it holds far more of them than the file has intervals: it
+        # was written by something that didn't know the runtime (every frame the same picture, at a fraction of the
+        # stated interval) or at a different interval than its name claims.
+        return PreviewProblem(
+            media_path=media_path,
+            preview_path=preview_path,
+            reason=(
+                f"缩略图数量异常：{metadata.frame_count} 张（{metadata.file_size / 1024 / 1024:.0f} MB），"
+                f"约为视频时长 {runtime_s / 60:.0f} 分钟所需 {expected:.0f} 张的 {share:.0%}，"
+                f"超出正常范围（可能是旧版 FFmpeg 读不到时长，一直重复同一张图）"
+            ),
+            frames=metadata.frame_count,
+            expected_frames=expected,
+        )
+    if share >= MIN_HEALTHY_FRAME_SHARE and shortfall_s <= SHORTFALL_TOLERANCE_S:
         return None
     return PreviewProblem(
         media_path=media_path,
