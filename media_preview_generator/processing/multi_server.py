@@ -166,6 +166,9 @@ class MultiServerResult:
     # The thumbnail interval (seconds) when this file's snapshot frames were too far apart for the fast path and it was
     # fully decoded (slower); None when it took the fast path or no frames were extracted.
     slow_path_interval: int | None = None
+    #: How many of this file's previews the "异常缩略图排查" check measured and found wrong. NEEDS_GENERATION covers both
+    #: "no preview yet" and "preview is wrong"; this tells them apart, so the job banner can report what the sweep found.
+    audited_broken: int = 0
 
     @property
     def published_count(self) -> int:
@@ -2175,6 +2178,7 @@ def _process_canonical_path_previews(
             canonical_path=canonical_path,
             status=MultiServerStatus.NEEDS_GENERATION,
             message="Outputs missing or stale; FFmpeg required",
+            audited_broken=len(audited_bad),
         )
 
     # Frame cache: when enabled, the second+ webhook for the same file

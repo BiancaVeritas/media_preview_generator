@@ -197,6 +197,15 @@ class JobTracker:
         self.total_items = len(items)
         self.successful = 0
         self.failed = 0
+        # How far the checking stage has got, and what it found there (guarded by _counts_lock). Checking and generation
+        # are two pools running side by side: the sweep finishes the whole library within a minute or two while the
+        # generation workers are still on the first few files. One combined count made that look like the job was
+        # "skipping ahead" — the banner now shows the two separately.
+        self.checked = 0
+        #: How many of those the preview check found wrong, so they were queued for regeneration.
+        self.check_flagged = 0
+        #: Files sitting in item_queue waiting for a generation worker right now.
+        self.awaiting_generation = 0
         # Which files failed, so a multi-path webhook retries those and not the first N (guarded by _counts_lock).
         self.failed_paths: list[str] = []
         # The failed files whose node couldn't run them (dropped them, never started them, or can't see them), with
@@ -433,9 +442,30 @@ class JobTracker:
             if self.gpu_waiting:
                 files = "file" if self.gpu_waiting == 1 else "files"
                 waiting = f"{self.gpu_waiting} {files} waiting for another GPU · "
-            return f"{self.library_prefix}{waiting}{completed}/{self.total_items} completed"
+            line = f"{self.library_prefix}{waiting}{completed}/{self.total_items} completed"
+            # Only say something when the sweep is actually the interesting part: it found previews to rebuild, or it
+            # is still working (it sweeps far ahead of generation, so this is the common case mid-run). With nothing
+            # counted yet, the plain "3/10 completed" is the honest line.
+            with self._counts_lock:
+                checked, flagged = self.checked, self.check_flagged
+            still_sweeping = 0 < checked < self.total_items
+            if flagged or still_sweeping:
+                suffix = f"checked {checked}/{self.total_items}"
+                if flagged:
+                    suffix += f" · {flagged} need rebuilding"
+                return f"{line} · {suffix}"
+            return line
         check_label = self.handlers.check_label if self.handlers else "Checking existing previews…"
-        return f"{self.library_prefix}{check_label} {completed}/{self.total_items}"
+        with self._counts_lock:
+            checked, flagged = self.checked, self.check_flagged
+        line = f"{self.library_prefix}{check_label} {completed}/{self.total_items}"
+        # The sweep's own counter, once it has something to say.
+        if flagged or 0 < checked < self.total_items:
+            suffix = f"checked {checked}/{self.total_items}"
+            if flagged:
+                suffix += f" · {flagged} need rebuilding"
+            line += f" · {suffix}"
+        return line
 
     def _push_outcome_snapshot(self, outcome: dict[str, int]) -> None:
         """Mirror the live per-file outcome breakdown onto the Job.
@@ -488,6 +518,21 @@ class JobTracker:
             if remaining:
                 self.failed += remaining
         self.done_event.set()
+
+    def note_checked(self) -> None:
+        """One more file has been through the checking stage.
+
+        Checking runs on its own pool, ahead of generation, so this counter reaches the total long before the
+        generation workers do. The banner shows both, which is what makes "the sweep is done, 4 files are queued for
+        rebuild" readable instead of looking like the job skips work.
+        """
+        with self._counts_lock:
+            self.checked += 1
+
+    def note_check_flagged(self) -> None:
+        """One more file was queued for regeneration because the preview check found its preview wrong."""
+        with self._counts_lock:
+            self.check_flagged += 1
 
     def record_check_result(self, item, result) -> None:
         """Record an item decided by the checking stage (no processing worker).
@@ -1878,8 +1923,13 @@ class JobDispatcher:
                     # Guard: never re-queue into a job cancel() already drained.
                     if not tracker.is_cancelled() and not tracker.done_event.is_set():
                         tracker.item_queue.append(item)
+                        # Only a preview the check measured as wrong counts as "flagged": NEEDS_GENERATION also covers
+                        # a file that simply had no preview yet, which is the ordinary missing-only work.
+                        if getattr(result, "audited_broken", 0):
+                            tracker.note_check_flagged()
                 elif not tracker.done_event.is_set():
                     tracker.record_check_result(item, result)
+                tracker.note_checked()
             except Exception as exc:
                 # ANYTHING the check stage raises — the cheap probe itself, an
                 # unexpected/malformed result (e.g. no .status), or recording —
