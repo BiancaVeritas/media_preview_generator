@@ -2544,6 +2544,15 @@ html[data-bs-theme="dark"] .table thead th { background-color: var(--inset); }
 .tooltip-inner { border: 1px solid var(--line-strong); box-shadow: var(--shadow-2); }
 html[data-bs-theme="light"] .tooltip { --bs-tooltip-bg: #1e293b; --bs-tooltip-color: #f1f5f9; }
 html[data-bs-theme="light"] .tooltip-inner { border-color: transparent; }
+/* The "点击了解更多" hint under a clickable ⓘ: its own line, a step smaller and dimmer than the explanation.
+   It is a <span> inside the tooltip, so display:block breaks the line without a <br> in the markup. */
+.tooltip-inner .tip-more {
+    display: block;
+    margin-top: .4em;
+    font-size: .78em;
+    font-weight: 400;
+    opacity: .6;
+}
 
 /* One accent for every switch, checkbox and radio. The mark inside is dark: white on amber is 2.3:1. */
 .form-check-input:checked { background-color: var(--accent-fill); border-color: var(--accent-fill); }

@@ -3532,6 +3532,11 @@ function showNewJobModal() {
     document.querySelectorAll('input[name="jobKind"]').forEach(cb => { cb.checked = cb.id === 'jobKindPreviews'; });
     const markersForce = document.getElementById('jobMarkersForce');
     if (markersForce) markersForce.checked = false;
+    // Every open starts from the default processing mode and preview check, like the rest of the dialog.
+    const processingMissing = document.getElementById('jobMissingOnly');
+    if (processingMissing) processingMissing.checked = true;
+    const auditMode = document.getElementById('jobAuditMode');
+    if (auditMode) auditMode.value = 'off';
     _showJobKindControls();
     if (wasOwnRunner) document.getElementById('jobPriority').value = '2';
 
@@ -3755,7 +3760,11 @@ function _syncJobDialog(prefix = 'job') {
     if (summary) {
         const all = document.getElementById(`${prefix}LibraryAll`)?.checked;
         const picked = _libraryCheckboxes(prefix, true).length;
-        const scope = all ? 'All libraries' : `${picked} ${picked === 1 ? 'library' : 'libraries'}`;
+        // Spelled out as the catalogue spells it: "{0} libraries · X" would read "3 个媒体库 · X", but its slots also
+        // match "All libraries · X" (slot 0 = "All"), so that form is gone and this one is unambiguous.
+        const scope = all
+            ? 'All libraries'
+            : (picked === 1 ? '1 library selected' : `${picked} libraries selected`);
         const priorityName = _JOB_PRIORITY_NAMES[parseInt(priority?.value, 10)] || (prefix === 'schedule' ? 'Default priority' : 'Normal');
         const parts = [scope];
         if (prefix === 'schedule') {
@@ -4912,10 +4921,12 @@ window.checkConfigHealth = checkConfigHealth;
  * and the class come from `_applyInfoIconAffordance`, so an ⓘ can't say "click" when a click does nothing.
  */
 const INFO_ICON_MORE_HINT = 'Click for more.';
-// The same suffix in the page's language, and the full stop that goes with it: a translated hint already ends in "。",
-// so adding the English "." after it read as a stray dot ("之后。. Click for more.").
-const INFO_ICON_MORE_HINT_ZH = '点击了解更多。';
+// In Chinese the hint sits on its own line of small grey text, so it carries no full stop: being set apart already
+// ends it, and "之后。点击了解更多。" read as clutter on one line.
+const INFO_ICON_MORE_HINT_ZH = '点击了解更多';
 const INFO_ICON_STOP_RE = /[.!?。！？]$/;
+// Names the second line so style.css can set it apart (display:block, smaller, dimmer).
+const INFO_ICON_MORE_CLASS = 'tip-more';
 
 function _infoIconLocale() {
     return (document.documentElement.getAttribute('lang') || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
@@ -4940,24 +4951,46 @@ function _infoIconDetailHtml(el) {
 function _infoIconHint(el) {
     // Bootstrap moves `title` into `data-bs-original-title` once a tooltip exists.
     const text = el.getAttribute('data-bs-original-title') ?? el.getAttribute('title') ?? '';
-    return text.replace(INFO_ICON_HINT_SUFFIX_RE, '').trim();
+    // A previous pass may have written the second line as markup; drop the tags before reusing the sentence.
+    return text.replace(/<[^>]*>/g, '').replace(INFO_ICON_HINT_SUFFIX_RE, '').trim();
 }
 
 function _applyInfoIconAffordance(el) {
     const hasDetail = !!_infoIconDetailHtml(el);
     el.classList.toggle('info-icon-more', hasDetail);
+    const zh = _infoIconLocale() === 'zh';
     let hint = _infoIconHint(el);
+    let title = hint;
     if (hasDetail) {
-        const zh = _infoIconLocale() === 'zh';
-        const stop = zh ? '。' : '.';
-        if (hint && !INFO_ICON_STOP_RE.test(hint)) hint += stop;
-        // Chinese sets no space after a full stop before the next phrase; English needs one.
-        const joiner = zh ? '' : ' ';
-        hint = hint ? `${hint}${joiner}${_infoIconMoreSuffix()}` : _infoIconMoreSuffix();
+        if (hint && !INFO_ICON_STOP_RE.test(hint)) hint += zh ? '。' : '.';
+        const suffix = _infoIconMoreSuffix();
+        if (zh) {
+            // Only an HTML tooltip can style one part of it, which is what puts this line below in grey.
+            el.setAttribute('data-bs-html', 'true');
+            title = `${escapeHtml(hint)}<span class="${INFO_ICON_MORE_CLASS}">${escapeHtml(suffix)}</span>`;
+        } else {
+            el.removeAttribute('data-bs-html');
+            title = hint ? `${hint} ${suffix}` : suffix;
+        }
+    } else {
+        el.removeAttribute('data-bs-html');
     }
     const attr = el.hasAttribute('data-bs-original-title') ? 'data-bs-original-title' : 'title';
-    if ((el.getAttribute(attr) || '') !== hint) el.setAttribute(attr, hint);
-    if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', hint || (_infoIconLocale() === 'zh' ? '更多信息' : 'More information'));
+    if ((el.getAttribute(attr) || '') !== title) el.setAttribute(attr, title);
+    // Screen readers get the words, never the markup.
+    const plain = title.replace(/<[^>]*>/g, '');
+    if (!el.hasAttribute('aria-label')) {
+        el.setAttribute('aria-label', plain || (zh ? '更多信息' : 'More information'));
+    }
+    // Bootstrap caches the title and the html flag when it builds a Tooltip, so an icon that already had an instance
+    // (a second pass over the same DOM) would keep the old one-line text. Rebuild it.
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+        const tip = bootstrap.Tooltip.getInstance(el);
+        if (tip) {
+            tip.dispose();
+            new bootstrap.Tooltip(el);
+        }
+    }
 }
 
 // A title alone is not reliably announced on a focusable control, so icon-only buttons get it as their name.

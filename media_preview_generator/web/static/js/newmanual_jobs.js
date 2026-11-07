@@ -376,6 +376,8 @@ function showManualTriggerModal() {
     clearTimeout(_manualSearchTimer);
     document.getElementById('manualKindPreviews').checked = true;
     document.getElementById('manualMissingOnly').checked = true;
+    // Each open starts from "关闭 默认" for the preview check, like the other options here.
+    document.getElementById('manualAuditMode').value = 'off';
     document.getElementById('manualMarkersForce').checked = false;
     document.getElementById('manualSubmissionError').textContent = '';
     document.getElementById('manualSearchServer').value = '';

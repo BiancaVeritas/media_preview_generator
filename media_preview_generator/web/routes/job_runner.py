@@ -46,7 +46,11 @@ _inflight_lock = threading.Lock()
 # The only Config attributes a job override may set directly; the other overrides are the named keys the
 # override loop in run_job translates itself. Anything else that names a Config attribute (ffmpeg_path,
 # plex_token, ...) is ignored, since the saved job config is replayed on every start path.
-_CONFIG_ATTRIBUTE_OVERRIDES = frozenset({"regenerate_thumbnails", "sort_by"}) | FILTER_CONFIG_KEYS
+# ``audit_existing`` is the Previews job's "异常缩略图排查" option. Without it here the replay dropped it with
+# "ignored config override 'audit_existing', which a job can't set", so ticking it ran a plain job instead.
+_CONFIG_ATTRIBUTE_OVERRIDES = (
+    frozenset({"regenerate_thumbnails", "sort_by", "audit_existing"}) | FILTER_CONFIG_KEYS
+)
 
 
 def _pins_non_plex_server(media_servers: object, server_id: str) -> bool:

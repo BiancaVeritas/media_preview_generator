@@ -238,3 +238,58 @@ def test_full_scan_filters_reach_processing(app, captured_run, start_path, filte
     assert done.wait(timeout=5), "run_processing was not called"
     for key, expected in filters.items():
         assert getattr(captured[0], key) == expected, f"{start_path} runtime dropped {key}"
+
+
+class TestPreviewCheckOverrideReachesTheWorker:
+    """"异常缩略图排查" (``audit_existing``) must survive the replay allow-list.
+
+    It once did not: the API saved it, then run_job logged "ignored config override 'audit_existing',
+    which a job can't set" and ran a plain job, so ticking the option scanned nothing.
+    """
+
+    def test_it_is_on_the_allow_list(self):
+        from media_preview_generator.web.routes.job_runner import _CONFIG_ATTRIBUTE_OVERRIDES
+
+        assert "audit_existing" in _CONFIG_ATTRIBUTE_OVERRIDES
+
+    def test_a_new_job_keeps_it(self, app, captured_run):
+        response = app.test_client().post(
+            "/api/jobs", headers=_headers(), json={"library_name": "Movies", "config": {"audit_existing": True}}
+        )
+
+        assert response.status_code == 201, response.get_data(as_text=True)
+        with app.app_context():
+            saved = get_job_manager().get_job(response.get_json()["id"]).config
+        assert saved.get("audit_existing") is True
+
+        captured, done = captured_run
+        assert done.wait(timeout=5), "run_processing was not called"
+        assert captured[0].audit_existing is True
+
+    def test_a_resumed_job_keeps_it(self, app, captured_run):
+        """A restart replays the saved config; the option has to come back with it."""
+        from media_preview_generator.web.app import _requeue_interrupted_on_startup
+
+        with app.app_context():
+            jm = get_job_manager()
+            job = jm.create_job(library_name="Movies", config={"audit_existing": True})
+            jm._interrupted_jobs = [job]
+
+        with app.app_context():
+            _requeue_interrupted_on_startup(app.config.get("CONFIG_DIR") or os.environ["CONFIG_DIR"])
+
+        captured, done = captured_run
+        assert done.wait(timeout=5), "run_processing was not called"
+        assert captured[0].audit_existing is True
+
+    def test_off_saves_no_key(self, app):
+        """Unticked, the key is never written, so a job can't inherit a stale "on" from an earlier save."""
+        with patch("media_preview_generator.web.routes.api_jobs._start_job_async"):
+            response = app.test_client().post(
+                "/api/jobs", headers=_headers(), json={"library_name": "Movies", "config": {"sort_by": "newest"}}
+            )
+
+        assert response.status_code == 201, response.get_data(as_text=True)
+        with app.app_context():
+            saved = get_job_manager().get_job(response.get_json()["id"]).config
+        assert "audit_existing" not in saved

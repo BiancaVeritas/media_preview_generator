@@ -11,9 +11,28 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+
+# ---------------------------------------------------------------------------
+# Windows stubs for the POSIX-only calls the app makes while building its Flask
+# app (config_health probes os.getuid/os.getgid, and disk space via os.statvfs).
+# Without them every test that creates an app errors during setup, long before
+# it can assert anything. Only the missing functions are stubbed; a POSIX host
+# keeps its real ones.
+# ---------------------------------------------------------------------------
+if not hasattr(os, "getuid"):
+    os.getuid = lambda: 1000
+    os.getgid = lambda: 1000
+if not hasattr(os, "statvfs"):
+    os.statvfs = lambda path: SimpleNamespace(
+        f_bavail=100 * 1024**2,
+        f_frsize=4096,
+        f_blocks=1000 * 1024**2 // 4096,
+        f_bfree=900 * 1024**2 // 4096,
+    )
 
 # ---------------------------------------------------------------------------
 # tmp_path and pytest's own base temp dir default to /tmp. On this host /tmp is
