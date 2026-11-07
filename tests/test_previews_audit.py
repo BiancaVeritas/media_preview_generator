@@ -72,9 +72,43 @@ def test_a_complete_preview_passes(tmp_path, monkeypatch, media):
     assert check_preview(str(source), str(preview)) is None
 
 
-def test_a_preview_that_lost_its_tail_passes(tmp_path, monkeypatch, media):
+def test_a_preview_that_lost_a_few_frames_at_the_tail_passes(tmp_path, monkeypatch, media):
+    """A decoder error on the last packets costs a frame or two; that is still a good preview."""
     source, _ = media("film.mkv", 2400)
-    preview = _write_bif(tmp_path / "film-320-10.bif", int(240 * (MIN_HEALTHY_FRAME_SHARE + 0.1)))
+    preview = _write_bif(tmp_path / "film-320-10.bif", 238)
+    _stub_runtime(monkeypatch, 2400)
+
+    assert check_preview(str(source), str(preview)) is None
+
+
+def test_a_preview_that_stopped_fifteen_minutes_early_is_reported(tmp_path, monkeypatch, media):
+    """On a two-hour film, 15 minutes is 87%: below the share, so it is caught."""
+    source, _ = media("film.mkv", 7200)
+    preview = _write_bif(tmp_path / "film-320-10.bif", 630)
+    _stub_runtime(monkeypatch, 7200)
+
+    problem = check_preview(str(source), str(preview))
+
+    assert problem is not None
+    assert "15" in problem.reason
+
+
+def test_a_three_hour_film_that_stopped_eight_minutes_early_is_reported(tmp_path, monkeypatch, media):
+    """8 minutes of 180 is 95.5% by share, but the shortfall rule catches it."""
+    source, _ = media("film.mkv", 10_800)
+    preview = _write_bif(tmp_path / "film-320-10.bif", 1032)
+    _stub_runtime(monkeypatch, 10_800)
+
+    problem = check_preview(str(source), str(preview))
+
+    assert problem is not None
+    assert "8" in problem.reason
+
+
+def test_a_few_minutes_short_is_normal(tmp_path, monkeypatch, media):
+    """The stated runtime runs past the video stream, and the last frame is up to one interval early."""
+    source, _ = media("film.mkv", 2400)
+    preview = _write_bif(tmp_path / "film-320-10.bif", 239)
     _stub_runtime(monkeypatch, 2400)
 
     assert check_preview(str(source), str(preview)) is None

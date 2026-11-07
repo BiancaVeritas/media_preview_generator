@@ -26,9 +26,18 @@ from loguru import logger
 from .bif_reader import read_bif_metadata
 from .strm import StrmError, media_input
 
-#: A preview may hold this share of the frames its runtime asks for before it is called broken. A complete run is
-#: within one or two frames of 100%; a run that died at the start of a long file is a few frames, far below this.
-MIN_HEALTHY_FRAME_SHARE = 0.5
+#: A preview must hold this share of the frames its runtime asks for to count as healthy.
+#:
+#: ``0.95`` is the generator's own rule (``PUBLISH_MIN_FRAME_RATIO``): a complete run lands within a frame or two of
+#: 100%, and anything a decoder dropped at the tail keeps it above 95%. Below that, the run stopped part-way — the
+#: failure this audit exists to find. At a 10 s interval it allows a preview to end 2 minutes early on a 40-minute file,
+#: 6 on a two-hour one, and 9 on a three-hour one: already far past anything a good run leaves behind.
+MIN_HEALTHY_FRAME_SHARE = 0.95
+#: A preview that ends this many minutes before the runtime is also reported, whatever its share. A stated runtime can
+#: run past its video stream, and a preview's last frame sits up to one thumbnail interval early, so a couple of minutes
+#: is normal; a quarter of an hour is not. This catches a stop part-way on a long film that 95% alone would let through
+#: (95% of a three-hour file still hides 9 minutes).
+SHORTFALL_TOLERANCE_S = 300
 #: Files this short have so few thumbnails that the share can't tell a good preview from a bad one, so they are skipped.
 MIN_AUDIT_DURATION_S = 60
 
@@ -117,15 +126,17 @@ def check_preview(media_path: str, preview_path: str, *, default_interval_s: int
         return None
     if runtime_s < MIN_AUDIT_DURATION_S:
         return None
-    if metadata.frame_count / expected >= MIN_HEALTHY_FRAME_SHARE:
+    covered_s = metadata.frame_count * interval_s
+    shortfall_s = runtime_s - covered_s
+    if metadata.frame_count / expected >= MIN_HEALTHY_FRAME_SHARE and shortfall_s <= SHORTFALL_TOLERANCE_S:
         return None
-    covered_min = metadata.frame_count * interval_s / 60
     return PreviewProblem(
         media_path=media_path,
         preview_path=preview_path,
         reason=(
-            f"只有 {metadata.frame_count} 张缩略图（约 {covered_min:.0f} 分钟），"
+            f"只有 {metadata.frame_count} 张缩略图（约 {covered_s / 60:.0f} 分钟），"
             f"而视频时长 {runtime_s / 60:.0f} 分钟，应有约 {expected:.0f} 张"
+            f"，缺 {shortfall_s / 60:.0f} 分钟"
         ),
         frames=metadata.frame_count,
         expected_frames=expected,
