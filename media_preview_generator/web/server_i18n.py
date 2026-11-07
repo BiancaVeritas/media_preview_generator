@@ -29,13 +29,14 @@ SUPPORTED_LANGS = ("zh-CN", "en")
 #: Elements whose content is code or an example, never a label.
 _RAW_TAGS = frozenset({"script", "style", "pre", "code", "textarea", "kbd", "samp"})
 _TAG_RE = re.compile(r"(<[^>]*>)")
+#: ``value`` is deliberately absent: it is the value the app compares, submits and stores, never a label shown on
+#: screen. Translating it broke two controls — the segmented control over a ``<select>`` (its buttons compared "关闭"
+#: against the option's own "off"), and Clear jobs, whose checkboxes submitted "已完成" to an API that only accepts
+#: "completed" ("unknown status(es): ['已完成', ...]"). A control's visible words live in its text, not in ``value``.
 _ATTR_RE = re.compile(
-    r"""\b(title|placeholder|aria-label|alt|data-bs-title|data-bs-original-title|value)\s*=\s*"([^"]*)\"""",
+    r"""\b(title|placeholder|aria-label|alt|data-bs-title|data-bs-original-title)\s*=\s*"([^"]*)\"""",
     re.IGNORECASE,
 )
-#: An ``<option value="…">`` value is the value the app compares and submits, never a label: translating it broke the
-#: segmented control built over a ``<select>`` (its buttons compared "关闭" against the option's own value).
-_OPTION_TAG_RE = re.compile(r"^<\s*option\b", re.IGNORECASE)
 _TAG_NAME_RE = re.compile(r"<\s*/?\s*([A-Za-z][A-Za-z0-9-]*)")
 _SLOT_RE = re.compile(r"\{(\d+)\}")
 
@@ -168,17 +169,14 @@ def _translate_text(text: str, lang: str) -> str:
 
 
 def _translate_attributes(tag: str, lang: str) -> str:
-    """The ``title``/``placeholder``/``aria-label``/``alt``/``value`` of one tag, translated in place.
+    """The ``title``/``placeholder``/``aria-label``/``alt`` of one tag, translated in place.
 
-    An ``<option value="…">`` keeps its value: the app compares and submits that string, so translating it turns the
-    segmented control's buttons into labels that no longer match their option.
+    ``value`` is not in the list: it is what the app compares, submits and stores, so it stays exactly as the
+    template wrote it. A checkbox's visible words are its surrounding text, not its value.
     """
-    is_option = bool(_OPTION_TAG_RE.match(tag))
 
     def replace(match: re.Match[str]) -> str:
         name, value = match.group(1), match.group(2)
-        if is_option and name.lower() == "value":
-            return match.group(0)
         translated = translate(html_module.unescape(value), lang)
         if translated is None:
             return match.group(0)

@@ -1869,6 +1869,9 @@ class JobDispatcher:
                     server_id_filter=per_item_pin,
                     regenerate=resolve_per_item_regenerate(tracker.config, item),
                     check_only=True,
+                    # Without this the check stage reports "output already exists" for every file that has a
+                    # preview, so a "异常缩略图排查" job queued nothing and finished as a plain missing-only run.
+                    audit_existing=bool(getattr(tracker.config, "audit_existing", False)),
                 )
 
                 if result.status is MultiServerStatus.NEEDS_GENERATION:

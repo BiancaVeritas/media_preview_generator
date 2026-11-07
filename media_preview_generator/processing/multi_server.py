@@ -2013,6 +2013,13 @@ def _process_canonical_path_previews(
             logger.debug("Preview check: {} has no preview yet, so this run generates one", canonical_path)
         elif broken == 0:
             logger.debug("Preview check: the preview for {} is sound; it is left as it is", canonical_path)
+        else:
+            logger.info(
+                "Preview check: {} of {} preview file(s) for {} were wrong and are being rebuilt",
+                broken,
+                checked,
+                os.path.basename(canonical_path),
+            )
 
     if not regenerate:
         # "Checking existing previews…" belongs to the decoupled checking
