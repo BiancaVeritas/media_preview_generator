@@ -18,12 +18,12 @@
    "在“推荐”分组中隐藏此建议 — {0}。可在“一切正常”部分恢复。"
   ],
   [
-   "your {0}-second thumbnail interval. A longer interval (the default is 10 seconds) lets more files",
-   "你的 {0} 秒缩略图间隔。更长的间隔（默认 10 秒）可让更多文件"
-  ],
-  [
    "Replaced {0}'s own marker. This server is set to keep {1}'s, but a marker you adjust always wins.",
    "已替换 {0} 自己的标记。此服务器设置为保留 {1} 的标记，但你调整过的标记始终优先。"
+  ],
+  [
+   "your {0}-second thumbnail interval. A longer interval (the default is 10 seconds) lets more files",
+   "你的 {0} 秒缩略图间隔。更长的间隔（默认 10 秒）可让更多文件"
   ],
   [
    "This will change {0} setting{1} on the media server. Review the list and click Apply to proceed.",
@@ -70,12 +70,12 @@
    "从历史记录中删除 {0} 个{1}？其日志和结果也会一并删除。"
   ],
   [
-   "Scheduled now: CPU {0} · GPU {1}. Weekly peak: CPU {2} · GPU {3}. UTC.",
-   "当前计划：CPU {0} · GPU {1}。每周峰值：CPU {2} · GPU {3}。UTC。"
-  ],
-  [
    "{0} now: CPU {1} · GPU {2}{3}. Weekly peak: CPU {4} · GPU {5}{6}. {7}.",
    "{0} 当前：CPU {1} · GPU {2}{3}。本周峰值：CPU {4} · GPU {5}{6}。{7}。"
+  ],
+  [
+   "Scheduled now: CPU {0} · GPU {1}. Weekly peak: CPU {2} · GPU {3}. UTC.",
+   "当前计划：CPU {0} · GPU {1}。每周峰值：CPU {2} · GPU {3}。UTC。"
   ],
   [
    "{0} webhooks waiting — click to jump to the next one in the queue",
@@ -86,48 +86,44 @@
    "{0}：每个时间窗口都需要不同的有效开始和结束时间。"
   ],
   [
-   "{0}: {1} · 0 workers now. Its jobs wait for the node{2}.",
-   "{0}：{1} · 当前 0 个工作进程。其任务将等待该节点{2}。"
-  ],
-  [
    "{0}: enter 1–{1} workers. Remove the device to use zero.",
    "{0}：请输入 1–{1} 个工作进程。如需使用零个，请移除设备。"
   ],
   [
-   "{0}: select at least one start day for every window.",
-   "{0}：请为每个时间窗口至少选择一个起始日。"
+   "{0}: {1} · 0 workers now. Its jobs wait for the node{2}.",
+   "{0}：{1} · 当前 0 个工作进程。其任务将等待该节点{2}。"
   ],
   [
    "These times stay until you go back to automatic. {0}",
    "这些时间会保留，直到你恢复为自动。{0}"
   ],
   [
-   "Restore this check to the Recommended bucket — {0}.",
-   "将此检查恢复到推荐分组 — {0}。"
+   "{0}: select at least one start day for every window.",
+   "{0}：请为每个时间窗口至少选择一个起始日。"
   ],
   [
-   "Covers {0} of {1} · Regenerate preview to finish it",
-   "覆盖 {0} / {1} · 重新生成预览图以完成"
+   "Restore this check to the Recommended bucket — {0}.",
+   "将此检查恢复到推荐分组 — {0}。"
   ],
   [
    "{0} server{1} need attention. Go to server details.",
    "{0} 个服务器需要关注{1}。请前往服务器详情。"
   ],
   [
-   "{0}: add a time window or choose Always available.",
-   "{0}：请添加时间窗口，或选择“始终可用”。"
+   "Covers {0} of {1} · Regenerate preview to finish it",
+   "覆盖 {0} / {1} · 重新生成预览图以完成"
   ],
   [
-   "Still in use by {0}. Take it out of those first.",
-   "仍被 {0} 使用。请先将其从那里移除。"
+   "{0}: add a time window or choose Always available.",
+   "{0}：请添加时间窗口，或选择“始终可用”。"
   ],
   [
    "{0} recommended improvement{1} — click to review",
    "{0} 项建议改进{1} — 点击查看"
   ],
   [
-   "Your servers get ours once this {0} is checked",
-   "勾选此{0}后，你的服务器就会采用我们的"
+   "Still in use by {0}. Take it out of those first.",
+   "仍被 {0} 使用。请先将其从那里移除。"
   ],
   [
    "{0} groups · {1} occupied. Showing {2} of {3}.",
@@ -136,6 +132,10 @@
   [
    "Version {0}. Release notes, opens in a new tab",
    "版本 {0}。发行说明，将在新标签页打开"
+  ],
+  [
+   "Your servers get ours once this {0} is checked",
+   "勾选此{0}后，你的服务器就会采用我们的"
   ],
   [
    "{0} groups · {1} occupied. Showing {2} of {3}",
@@ -178,16 +178,16 @@
    "{0}/{1} 个已配置{2}在 {3} 上忙碌。"
   ],
   [
-   "Through the Plex database node at {0}",
-   "通过位于 {0} 的 Plex 数据库节点"
-  ],
-  [
    "Preview in place · trickplay tiles{0}",
    "就地预览 · 进度条预览图分块{0}"
   ],
   [
    "{0} {1} ours once this {2} is checked",
    "检查此{2}后，{0} {1} 我们的"
+  ],
+  [
+   "Through the Plex database node at {0}",
+   "通过位于 {0} 的 Plex 数据库节点"
   ],
   [
    "insp-mono insp-season-time insp-t-{0}",
@@ -202,24 +202,28 @@
    "距决策点 {0} 秒，因此未使用"
   ],
   [
-   "{0} (not on the Nodes page any more)",
-   "{0}（已不在节点页面上）"
-  ],
-  [
-   "{0} fell back to CPU for \"{1}\" — {2}",
-   "{0} 已回退到 CPU 处理“{1}” — {2}"
+   "Through a Plex database node: {0}{1}",
+   "通过 Plex 数据库节点：{0}{1}"
   ],
   [
    "{0} shows {1} {2} marker{3}{4} today",
    "{0} 今天显示 {1} 个{2}标记{3}{4}"
   ],
   [
+   "{0} fell back to CPU for \"{1}\" — {2}",
+   "{0} 已回退到 CPU 处理“{1}” — {2}"
+  ],
+  [
+   "{0} (not on the Nodes page any more)",
+   "{0}（已不在节点页面上）"
+  ],
+  [
    "Clear all {0} jobs from the history?",
    "从历史记录中清除全部 {0} 个任务？"
   ],
   [
-   "Through a Plex database node: {0}{1}",
-   "通过 Plex 数据库节点：{0}{1}"
+   "Move the {0} {1} one second earlier",
+   "将 {0} {1} 提前一秒"
   ],
   [
    "Schedule \"{0}\" created successfully",
@@ -230,28 +234,24 @@
    "计划任务“{0}”更新成功"
   ],
   [
-   "Move the {0} {1} one second earlier",
-   "将 {0} {1} 提前一秒"
-  ],
-  [
-   "{0} occupied {1} outside this view",
-   "{0} 个已占用，{1} 个在此视图之外"
-  ],
-  [
-   "{0} {1} an intro · {2} {3} credits",
-   "{0} {1} 片头 · {2} {3} 片尾"
-  ],
-  [
-   "Restored {0} schedule(s) from {1}.",
-   "已从 {1} 恢复 {0} 个计划任务。"
+   "· {0} have no chapters in the file",
+   "· {0} 的文件中没有章节"
   ],
   [
    "{0}: choose at least one job type.",
    "{0}：请至少选择一种任务类型。"
   ],
   [
-   "· {0} have no chapters in the file",
-   "· {0} 的文件中没有章节"
+   "{0} {1} an intro · {2} {3} credits",
+   "{0} {1} 片头 · {2} {3} 片尾"
+  ],
+  [
+   "{0} occupied {1} outside this view",
+   "{0} 个已占用，{1} 个在此视图之外"
+  ],
+  [
+   "Restored {0} schedule(s) from {1}.",
+   "已从 {1} 恢复 {0} 个计划任务。"
   ],
   [
    "{0} show{1} own markers meanwhile",
@@ -262,32 +262,32 @@
    "显示最后 {0} 条日志，共 {1} 条"
   ],
   [
-   "Same theme in {0} of {1} episodes",
-   "{1} 集里有 {0} 集使用相同主题曲"
-  ],
-  [
    "Runs to the end of the file ({0})",
    "持续到文件结尾（{0}）"
   ],
   [
-   "Failed to update GPU workers: {0}",
-   "更新 GPU 工作进程失败：{0}"
+   "Same theme in {0} of {1} episodes",
+   "{1} 集里有 {0} 集使用相同主题曲"
   ],
   [
    "Move the {0} {1} one second later",
    "将 {0} {1} 推迟一秒"
   ],
   [
+   "Failed to update GPU workers: {0}",
+   "更新 GPU 工作进程失败：{0}"
+  ],
+  [
    "Not detected — its jobs wait{0}.",
    "未检测到 — 它的任务会等待{0}。"
   ],
   [
-   "Analyzing audio · stream {0}/{1}",
-   "正在分析音频 · 流 {0}/{1}"
-  ],
-  [
    "here, {0} GPU + {1} CPU on nodes",
    "此处，节点上有 {0} 个 GPU + {1} 个 CPU"
+  ],
+  [
+   "Analyzing audio · stream {0}/{1}",
+   "正在分析音频 · 流 {0}/{1}"
   ],
   [
    "TV: latest {0} seasons per show",
@@ -298,12 +298,12 @@
    "{0}：响度仅在 CPU 上运行。"
   ],
   [
-   "A group holds up to {0} devices",
-   "一个工作组最多容纳 {0} 台设备"
-  ],
-  [
    "{0} was removed in another tab.",
    "{0} 已在另一个标签页中被移除。"
+  ],
+  [
+   "A group holds up to {0} devices",
+   "一个工作组最多容纳 {0} 台设备"
   ],
   [
    "Find intros & credits for {0}?",
@@ -314,20 +314,20 @@
    "无法在此读取画面帧：{0}"
   ],
   [
+   "Priority: {0}. Change priority",
+   "优先级：{0}。更改优先级"
+  ],
+  [
    "Couldn't lock these times: {0}",
    "无法锁定这些时间点：{0}"
   ],
   [
-   "Locked · later checks keep {0}",
-   "已锁定 · 之后的检查将保留 {0}"
+   "Checking the {0} decides ours.",
+   "查看 {0} 即决定我们的结果。"
   ],
   [
    "GPU workers for {0} set to {1}",
    "{0} 的 GPU 工作进程已设为 {1}"
-  ],
-  [
-   "Checking the {0} decides ours.",
-   "查看 {0} 即决定我们的结果。"
   ],
   [
    "Job {0} completed successfully",
@@ -338,24 +338,32 @@
    "查看此 {0} 即决定我们的结果"
   ],
   [
-   "Priority: {0}. Change priority",
-   "优先级：{0}。更改优先级"
+   "Locked · later checks keep {0}",
+   "已锁定 · 之后的检查将保留 {0}"
   ],
   [
-   "Ask Plex to show {0} previews",
-   "让 Plex 显示 {0} 张预览图"
+   "CPU workers · CPU · {0} · {1}",
+   "CPU 工作进程 · CPU · {0} · {1}"
   ],
   [
-   "No libraries to test yet. {0}",
-   "还没有可测试的媒体库。{0}"
+   "insp-card insp-message is-{0}",
+   "insp-card insp-message is-{0}"
   ],
   [
    "The {0} {1} to end after {2}.",
    "{0} {1} 需在 {2} 之后结束。"
   ],
   [
+   "Ask Plex to show {0} previews",
+   "让 Plex 显示 {0} 张预览图"
+  ],
+  [
    "Re-enable GPU ({0} worker{1})",
    "重新启用 GPU（{0} 个工作进程{1}）"
+  ],
+  [
+   "{0} {1} · Local time (UTC{2})",
+   "{0} {1} · 本地时间 (UTC{2})"
   ],
   [
    "{0} is already in this group.",
@@ -370,44 +378,40 @@
    "查看此 {0} 来决定我们的结果"
   ],
   [
-   "{0} {1} · Local time (UTC{2})",
-   "{0} {1} · 本地时间 (UTC{2})"
-  ],
-  [
-   "insp-card insp-message is-{0}",
-   "insp-card insp-message is-{0}"
-  ],
-  [
-   "CPU workers · CPU · {0} · {1}",
-   "CPU 工作进程 · CPU · {0} · {1}"
-  ],
-  [
    "{0} (no answer from this app)",
    "{0}（此应用无响应）"
+  ],
+  [
+   "No libraries to test yet. {0}",
+   "还没有可测试的媒体库。{0}"
   ],
   [
    "Publish {0} to {1} server{2}",
    "将 {0} 发布到 {1} 服务器{2}"
   ],
   [
-   "{0} jobs match these filters",
-   "{0} 个任务符合这些筛选条件"
+   "Showing {0} of {1} log lines",
+   "显示 {0} 条日志，共 {1} 条"
   ],
   [
-   "Agrees with {0}, so {1} kept",
-   "与 {0} 一致，因此保留 {1}"
+   "{0} of {1} libraries enabled",
+   "{0}/{1} 个媒体库已启用"
   ],
   [
    "Failed to start {0} job: {1}",
    "启动 {0} 任务失败：{1}"
   ],
   [
-   "Showing {0} of {1} log lines",
-   "显示 {0} 条日志，共 {1} 条"
+   "Agrees with {0}, so {1} kept",
+   "与 {0} 一致，因此保留 {1}"
   ],
   [
-   "preview frame {0} of {1}{2}",
-   "预览帧 {0} / {1}{2}"
+   "{0} jobs match these filters",
+   "{0} 个任务符合这些筛选条件"
+  ],
+  [
+   "{0}: {1}. Its jobs wait{2}.",
+   "{0}：{1}。其任务将等待{2}。"
   ],
   [
    "{0} not on every server yet",
@@ -418,36 +422,36 @@
    "{0} 处理完成"
   ],
   [
-   "{0}: {1}. Its jobs wait{2}.",
-   "{0}：{1}。其任务将等待{2}。"
-  ],
-  [
-   "Failed to save server: {0}",
-   "保存服务器失败：{0}"
-  ],
-  [
-   "· {0} can't get thumbnails",
-   "· {0} 无法获取缩略图"
+   "preview frame {0} of {1}{2}",
+   "预览帧 {0} / {1}{2}"
   ],
   [
    "{0} restored from {1}. {2}",
    "{0} 已从 {1} 恢复。{2}"
   ],
   [
-   ", drawn {0}on the timeline",
-   "，在时间轴上绘制于 {0}"
+   "· {0} can't get thumbnails",
+   "· {0} 无法获取缩略图"
   ],
   [
-   "{0} at {1}, container time",
-   "{0} 位于 {1}，容器时间"
+   "{0} jobs have been started",
+   "已启动 {0} 个任务"
+  ],
+  [
+   "Failed to save server: {0}",
+   "保存服务器失败：{0}"
   ],
   [
    "{0} groups · {1} occupied.",
    "{0} 个工作组 · {1} 个已占用。"
   ],
   [
-   "{0} jobs have been started",
-   "已启动 {0} 个任务"
+   "{0} at {1}, container time",
+   "{0} 位于 {1}，容器时间"
+  ],
+  [
+   ", drawn {0}on the timeline",
+   "，在时间轴上绘制于 {0}"
   ],
   [
    "Install failed (HTTP {0})",
@@ -458,16 +462,16 @@
    "放弃未保存的 {0}？"
   ],
   [
+   "{0} unread notifications",
+   "{0} 条未读通知"
+  ],
+  [
    "Start a {0} job for {1}?",
    "为 {1} 启动一个 {0} 任务？"
   ],
   [
    "Search failed (HTTP {0})",
    "搜索失败（HTTP {0}）"
-  ],
-  [
-   "{0} unread notifications",
-   "{0} 条未读通知"
   ],
   [
    "Nothing found for “{0}”.",
@@ -478,16 +482,24 @@
    "预览帧 {0} / {1}"
   ],
   [
+   "Intro & Credits for {0}",
+   "{0} 的片头与片尾"
+  ],
+  [
    "{0} is already selected",
    "{0} 已被选中"
   ],
   [
-   "{0} system details, {1}",
-   "{0} 系统详情，{1}"
-  ],
-  [
    "Markers {0} made itself",
    "{0} 自行生成的标记"
+  ],
+  [
+   "{0} of {1} show{2} ours",
+   "{0}/{1} 个显示为我们的{2}"
+  ],
+  [
+   "Failed to {0} schedule:",
+   "{0}计划任务失败："
   ],
   [
    "{0} not showing in Plex",
@@ -498,40 +510,12 @@
    "第 {0}/{1} 次尝试运行中"
   ],
   [
-   "Intro & Credits for {0}",
-   "{0} 的片头与片尾"
-  ],
-  [
-   "Failed to {0} schedule:",
-   "{0}计划任务失败："
-  ],
-  [
-   "{0} of {1} show{2} ours",
-   "{0}/{1} 个显示为我们的{2}"
-  ],
-  [
-   "Couldn't queue it: {0}",
-   "无法加入队列：{0}"
+   "{0} system details, {1}",
+   "{0} 系统详情，{1}"
   ],
   [
    "This {0} has {1} files",
    "此{0}有 {1} 个文件"
-  ],
-  [
-   "server-status-text-{0}",
-   "server-status-text-{0}"
-  ],
-  [
-   "Auth failed (HTTP {0})",
-   "认证失败（HTTP {0}）"
-  ],
-  [
-   "Added in last {0} days",
-   "最近 {0} 天内添加"
-  ],
-  [
-   "server-health-note-{0}",
-   "server-health-note-{0}"
   ],
   [
    "Webhook firing in {0}s",
@@ -542,60 +526,84 @@
    "{0} 未保存任何内容。"
   ],
   [
-   "Start {0} job for {1}",
-   "为 {1} 启动 {0} 任务"
+   "server-health-note-{0}",
+   "server-health-note-{0}"
   ],
   [
-   "{0} · {1} · {2} · {3}",
-   "{0} · {1} · {2} · {3}"
+   "Auth failed (HTTP {0})",
+   "认证失败（HTTP {0}）"
   ],
   [
-   "Added {0} through {1}",
-   "添加时间 {0} 至 {1}"
+   "Added in last {0} days",
+   "最近 {0} 天内添加"
   ],
   [
-   "{0}: no files to test",
-   "{0}：没有可测试的文件"
+   "Couldn't queue it: {0}",
+   "无法加入队列：{0}"
   ],
   [
-   "{0} need{1} attention",
-   "{0} 项需要关注{1}"
-  ],
-  [
-   "Delete finished ({0})",
-   "删除已完成（{0}）"
-  ],
-  [
-   "{0} · test decode {1}",
-   "{0} · 测试解码 {1}"
+   "server-status-text-{0}",
+   "server-status-text-{0}"
   ],
   [
    "Found {0} working {1}",
    "找到 {0} 个可用的 {1}"
   ],
   [
+   "{0} need{1} attention",
+   "{0} 项需要关注{1}"
+  ],
+  [
+   "{0}: no files to test",
+   "{0}：没有可测试的文件"
+  ],
+  [
+   "{0} · test decode {1}",
+   "{0} · 测试解码 {1}"
+  ],
+  [
    "Lock these times? {0}",
    "锁定这些时间点吗？{0}"
+  ],
+  [
+   "Added {0} through {1}",
+   "添加时间 {0} 至 {1}"
+  ],
+  [
+   "{0} · {1} · {2} · {3}",
+   "{0} · {1} · {2} · {3}"
   ],
   [
    "{0} {1} these filters",
    "{0} {1} 这些筛选条件"
   ],
   [
-   "Intro & Credits: {0}",
-   "片头与片尾：{0}"
+   "{0} schedules enabled",
+   "{0} 个已启用的计划任务"
+  ],
+  [
+   "Delete finished ({0})",
+   "删除已完成（{0}）"
+  ],
+  [
+   "{0} libraries enabled",
+   "{0} 个已启用的媒体库"
+  ],
+  [
+   "Start {0} job for {1}",
+   "为 {1} 启动 {0} 任务"
+  ],
+  [
+   "{0} webhooks pending",
+   "{0} 个 Webhook 等待中"
   ],
   [
    "{0} worker idle #{1}",
    "{0} 个工作进程空闲 #{1}"
   ],
   [
-   "{0} item{1} selected",
-   "已选中 {0} 项{1}"
-  ],
-  [
-   "{0} has been started",
-   "{0} 已启动"
+   "Show all {0} workers",
+   "显示全部 {0} 个工作进程"
   ],
   [
    "{0} of {1} connected",
@@ -606,124 +614,124 @@
    "在此设置 {0} {1}"
   ],
   [
-   "active-job-files-{0}",
-   "active-job-files-{0}"
+   "server-readiness-{0}",
+   "server-readiness-{0}"
   ],
   [
-   "Show all {0} workers",
-   "显示全部 {0} 个工作进程"
-  ],
-  [
-   "Preview frame at {0}",
-   "预览帧位于 {0}"
+   "{0} has been started",
+   "{0} 已启动"
   ],
   [
    "Lock and send to {0}",
    "锁定并发送到 {0}"
   ],
   [
-   "{0} webhooks pending",
-   "{0} 个 Webhook 等待中"
-  ],
-  [
-   "server-readiness-{0}",
-   "server-readiness-{0}"
-  ],
-  [
-   "Cleared {0} {1} jobs",
-   "已清除 {0} 个{1}任务"
+   "active-job-files-{0}",
+   "active-job-files-{0}"
   ],
   [
    "Save and send to {0}",
    "保存并发送到 {0}"
   ],
   [
-   "See frame {0} large",
-   "查看第 {0} 帧大图"
+   "Preview frame at {0}",
+   "预览帧位于 {0}"
   ],
   [
-   "Preview in place{0}",
-   "就地预览{0}"
+   "Cleared {0} {1} jobs",
+   "已清除 {0} 个{1}任务"
   ],
   [
-   "{0} on the next job",
-   "{0} 在下一个任务上"
+   "Intro & Credits: {0}",
+   "片头与片尾：{0}"
   ],
   [
-   "{0} on every server",
-   "{0} 在所有服务器上"
-  ],
-  [
-   "Movies: through {0}",
-   "电影：截至 {0}"
+   "{0} item{1} selected",
+   "已选中 {0} 项{1}"
   ],
   [
    "Job {0} failed: {1}",
    "任务 {0} 失败：{1}"
   ],
   [
-   "Movies: {0} onwards",
-   "电影：{0} 起"
+   "Movies: through {0}",
+   "电影：截至 {0}"
   ],
   [
-   "· {0} can't be read",
-   "· {0} 无法读取"
+   "Preview in place{0}",
+   "就地预览{0}"
   ],
   [
    "Recently added, {0}",
    "最近添加，{0}"
   ],
   [
-   "Couldn't save: {0}",
-   "无法保存：{0}"
+   "See frame {0} large",
+   "查看第 {0} 帧大图"
   ],
   [
-   "Failed to run {0}:",
-   "运行 {0} 失败："
+   "· {0} can't be read",
+   "· {0} 无法读取"
   ],
   [
-   "Search failed: {0}",
-   "搜索失败：{0}"
+   "{0} on the next job",
+   "{0} 在下一个任务上"
   ],
   [
-   "server-checked-{0}",
-   "server-checked-{0}"
+   "Movies: {0} onwards",
+   "电影：{0} 起"
   ],
   [
-   "{0} — not detected",
-   "{0} — 未检测到"
-  ],
-  [
-   "Forward {0} frames",
-   "前进 {0} 帧"
-  ],
-  [
-   "Plex loudness: {0}",
-   "Plex 响度：{0}"
-  ],
-  [
-   "Ready · {0} frames",
-   "就绪 · {0} 帧"
+   "{0} on every server",
+   "{0} 在所有服务器上"
   ],
   [
    "{0}'s own {1} here",
    "{0} 自己的 {1} 在此"
   ],
   [
-   "server-enabled-{0}",
-   "server-enabled-{0}"
+   "Plex loudness: {0}",
+   "Plex 响度：{0}"
   ],
   [
-   "worker group \"{0}\"",
-   "工作组“{0}”"
+   "Couldn't save: {0}",
+   "无法保存：{0}"
   ],
   [
    "{0} · Setup Health",
    "{0} · 设置体检"
   ],
   [
-   "Set by you on {0}",
-   "由你在 {0} 设置"
+   "Ready · {0} frames",
+   "就绪 · {0} 帧"
+  ],
+  [
+   "server-enabled-{0}",
+   "server-enabled-{0}"
+  ],
+  [
+   "Search failed: {0}",
+   "搜索失败：{0}"
+  ],
+  [
+   "Failed to run {0}:",
+   "运行 {0} 失败："
+  ],
+  [
+   "worker group \"{0}\"",
+   "工作组“{0}”"
+  ],
+  [
+   "Forward {0} frames",
+   "前进 {0} 帧"
+  ],
+  [
+   "{0} — not detected",
+   "{0} — 未检测到"
+  ],
+  [
+   "server-checked-{0}",
+   "server-checked-{0}"
   ],
   [
    "Setup steps ({0})",
@@ -734,120 +742,116 @@
    "CPU 工作进程 · {0}"
   ],
   [
-   "No preview yet{0}",
-   "还没有预览图{0}"
-  ],
-  [
-   "Results for “{0}”",
-   "“{0}”的结果"
-  ],
-  [
-   "Preview frame {0}",
-   "预览帧 {0}"
-  ],
-  [
-   "{0}{1} set by you",
-   "{0}{1} 由你设置"
-  ],
-  [
-   "Plex server \"{0}\"",
-   "Plex 服务器“{0}”"
-  ],
-  [
    "{0} (not allowed)",
    "{0}（不允许）"
-  ],
-  [
-   "{0} · not working",
-   "{0} · 未工作"
-  ],
-  [
-   "{0} {1} them now.",
-   "{0} 现在{1}它们。"
   ],
   [
    "· {0} not working",
    "· {0} 未工作"
   ],
   [
+   "Job {0} cancelled",
+   "任务 {0} 已取消"
+  ],
+  [
    "server-status-{0}",
    "server-status-{0}"
   ],
   [
-   "Job {0} cancelled",
-   "任务 {0} 已取消"
+   "Plex server \"{0}\"",
+   "Plex 服务器“{0}”"
+  ],
+  [
+   "{0}{1} set by you",
+   "{0}{1} 由你设置"
+  ],
+  [
+   "{0} {1} them now.",
+   "{0} 现在{1}它们。"
   ],
   [
    "Every {0} minutes",
    "每 {0} 分钟"
   ],
   [
-   "server-error-{0}",
-   "server-error-{0}"
+   "Preview frame {0}",
+   "预览帧 {0}"
   ],
   [
-   "last {0} minutes",
-   "最近 {0} 分钟"
+   "Results for “{0}”",
+   "“{0}”的结果"
   ],
   [
-   "{0} of {1} lines",
-   "{0}/{1} 行"
+   "{0} · not working",
+   "{0} · 未工作"
   ],
   [
-   "Used for the {0}",
-   "用于{0}"
+   "Set by you on {0}",
+   "由你在 {0} 设置"
   ],
   [
-   "Loudness for {0}",
-   "{0} 的响度"
-  ],
-  [
-   "Runs on node {0}",
-   "在节点 {0} 上运行"
-  ],
-  [
-   "{0} was removed.",
-   "{0} 已被移除。"
-  ],
-  [
-   "{0} workers idle",
-   "{0} 个工作进程空闲"
-  ],
-  [
-   "node:{0}:gpu:{1}",
-   "node:{0}:gpu:{1}"
-  ],
-  [
-   "Last checked {0}",
-   "上次检查 {0}"
+   "No preview yet{0}",
+   "还没有预览图{0}"
   ],
   [
    "job-{0}-logs.txt",
    "job-{0}-logs.txt"
   ],
   [
+   "Used for the {0}",
+   "用于{0}"
+  ],
+  [
    "Looks like a {0}",
    "看起来像是 {0}"
+  ],
+  [
+   "{0} workers idle",
+   "{0} 个工作进程空闲"
+  ],
+  [
+   "Loudness for {0}",
+   "{0} 的响度"
+  ],
+  [
+   "server-error-{0}",
+   "server-error-{0}"
+  ],
+  [
+   "{0} was removed.",
+   "{0} 已被移除。"
+  ],
+  [
+   "Runs on node {0}",
+   "在节点 {0} 上运行"
+  ],
+  [
+   "{0} of {1} lines",
+   "{0}/{1} 行"
+  ],
+  [
+   "node:{0}:gpu:{1}",
+   "node:{0}:gpu:{1}"
+  ],
+  [
+   "last {0} minutes",
+   "最近 {0} 分钟"
+  ],
+  [
+   "Last checked {0}",
+   "上次检查 {0}"
   ],
   [
    "Every {0} hours",
    "每 {0} 小时"
   ],
   [
+   "{0} · not found",
+   "{0} · 未找到"
+  ],
+  [
    "{0} worker idle",
    "{0} 个工作进程空闲"
-  ],
-  [
-   "Back {0} frames",
-   "后退 {0} 帧"
-  ],
-  [
-   "Next pause {0}.",
-   "下次暂停 {0}。"
-  ],
-  [
-   "· one every {0}",
-   "· 每 {0} 一个"
   ],
   [
    "{0} GPU workers",
@@ -858,56 +862,72 @@
    "任务 {0} 已创建"
   ],
   [
-   "{0} CPU workers",
-   "{0} 个 CPU 工作进程"
-  ],
-  [
    "{0} · {1} · {2}",
    "{0} · {1} · {2}"
   ],
   [
-   "Live saved: {0}",
-   "已实时保存：{0}"
+   "Back {0} frames",
+   "后退 {0} 帧"
   ],
   [
    "these {0} files",
    "这 {0} 个文件"
   ],
   [
-   "{0} · not found",
-   "{0} · 未找到"
+   "{0} CPU workers",
+   "{0} 个 CPU 工作进程"
   ],
   [
-   "Add {0} server",
-   "添加 {0} 服务器"
+   "Next pause {0}.",
+   "下次暂停 {0}。"
   ],
   [
-   "Start {0} jobs",
-   "启动 {0} 个任务"
+   "Live saved: {0}",
+   "已实时保存：{0}"
+  ],
+  [
+   "· one every {0}",
+   "· 每 {0} 一个"
   ],
   [
    "Clear {0} jobs",
    "清除 {0} 个任务"
   ],
   [
-   "{0}'s own only",
-   "仅 {0} 自己的"
-  ],
-  [
-   "{0} / {1} busy",
-   "{0} / {1} 忙碌"
+   "Start {0} jobs",
+   "启动 {0} 个任务"
   ],
   [
    "{0} · this one",
    "{0} · 这一个"
   ],
   [
+   "Add {0} server",
+   "添加 {0} 服务器"
+  ],
+  [
+   "{0} / {1} busy",
+   "{0} / {1} 忙碌"
+  ],
+  [
+   "{0}'s own only",
+   "仅 {0} 自己的"
+  ],
+  [
+   "{0} CPU cores",
+   "{0} 个 CPU 核心"
+  ],
+  [
    "{0} snapshots",
    "{0} 个快照"
   ],
   [
-   "{0} free temp",
-   "{0} 空闲临时空间"
+   "{0} available",
+   "{0} 个可用"
+  ],
+  [
+   "{0} log lines",
+   "{0} 行日志"
   ],
   [
    "Show {0} more",
@@ -922,36 +942,24 @@
    "{0} 个文件已运行"
   ],
   [
-   "{0} available",
-   "{0} 个可用"
-  ],
-  [
-   "{0} log lines",
-   "{0} 行日志"
-  ],
-  [
-   "{0} CPU cores",
-   "{0} 个 CPU 核心"
-  ],
-  [
-   "edit-tab-{0}",
-   "edit-tab-{0}"
+   "{0} free temp",
+   "{0} 空闲临时空间"
   ],
   [
    "node:{0}:cpu",
    "node:{0}:cpu"
   ],
   [
-   "{0} must fix",
-   "{0} 项必须修复"
-  ],
-  [
    "Show all {0}",
    "显示全部 {0}"
   ],
   [
-   "Version {0}",
-   "版本 {0}"
+   "edit-tab-{0}",
+   "edit-tab-{0}"
+  ],
+  [
+   "{0} must fix",
+   "{0} 项必须修复"
   ],
   [
    "{0} min ago",
@@ -962,8 +970,12 @@
    "srv-dot {0}"
   ],
   [
-   "{0} enabled",
-   "已启用 {0} 项"
+   "{0} servers",
+   "{0} 台服务器"
+  ],
+  [
+   "Version {0}",
+   "版本 {0}"
   ],
   [
    "About {0}",
@@ -1032,7 +1044,10 @@
   "0–19. Higher lets previews and Intro & Credits go first when the CPU is busy. Default 10.": "0–19。数值越高，CPU 繁忙时预览图和片头与片尾任务越优先。默认 10。",
   "1 1 auto": "1 1 auto",
   "1 available": "1 个可用",
+  "1 library enabled": "1 个已启用的媒体库",
   "1 notification": "1 条通知",
+  "1 schedule enabled": "1 个已启用的计划任务",
+  "1 server": "1 台服务器",
   "1 snapshot": "1 个快照",
   "1 webhook pending": "1 个 Webhook 等待中",
   "1. Choose server type": "1. 选择服务器类型",
@@ -2932,10 +2947,13 @@
   "Setup Health": "设置体检",
   "Setup Health overview": "设置体检概览",
   "Setup complete": "设置完成",
+  "Setup health": "设置体检",
   "Setup healthy — click for details": "设置体检正常——点击查看详情",
   "Setup in Radarr": "在 Radarr 中设置",
   "Setup in Sonarr": "在 Sonarr 中设置",
   "Setup in Sportarr": "在 Sportarr 中设置",
+  "Setup is healthy": "体检正常",
+  "Setup is healthy.": "体检正常。",
   "Setup not complete.": "设置尚未完成。",
   "Setup progress: step 1 of 5, Server type": "设置进度：第 1 步（共 5 步），服务器类型",
   "Setup steps": "设置步骤",
@@ -3197,6 +3215,7 @@
   "Unknown GPU": "未知 GPU",
   "Unknown error": "未知错误",
   "Unnamed Plex": "未命名 Plex",
+  "Unreachable": "无法连接",
   "Unsaved changes": "未保存的更改",
   "Unsaved group changes": "工作组更改未保存",
   "Untick Previews to make this app make no previews for anything in that library. Intro & Credits, when it's on for this server, has its own column.": "取消勾选“预览图”，此应用就不会再为该媒体库中的任何内容生成预览图。此服务器的“片头与片尾”若有开启，有单独的列。",
@@ -3780,6 +3799,7 @@
   "nothing yet": "暂无",
   "notification-details small mt-2 d-none": "notification-details small mt-2 d-none",
   "notification.": "通知。",
+  "of 9 libraries enabled": "9 个已启用的媒体库",
   "off": "关闭",
   "on each retry // child (captured at spawn time in": "on each retry // child (captured at spawn time in",
   "on one server never selects library": "on one server never selects library",

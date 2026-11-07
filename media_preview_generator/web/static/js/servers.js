@@ -402,7 +402,7 @@
                 </div>
                 <div class="srv-lib">
                     <span class="srv-lib-num${enabledLibs < libCount ? ' warn' : ''}">${enabledLibs}</span>
-                    <span class="srv-lib-sub">of ${libCount} ${libCount === 1 ? 'library' : 'libraries'} enabled</span>
+                    <span class="srv-lib-sub">${libCount === 1 ? '1 library enabled' : `${libCount} libraries enabled`}</span>
                 </div>
                 <div class="srv-foot">
                     <span class="srv-hint" id="server-checked-${id}"></span>
@@ -450,7 +450,7 @@
 
     function libraryChipsHtml(libraries) {
         const shown = libraries.slice(0, 6).map((l) => `<span class="srv-chip${l.enabled ? '' : ' x'}" title="${escapeHtml(l.name || l.id || '')}">${escapeHtml(l.name || l.id || 'unnamed')}</span>`).join('');
-        return libraries.length > 6 ? `${shown}<span class="srv-chip more">+${libraries.length - 6} more</span>` : shown;
+        return libraries.length > 6 ? `${shown}<span class="srv-chip more">还有 ${libraries.length - 6} 个</span>` : shown;
     }
 
     function libraryBarHtml(libraries, enabledLibs) {
@@ -485,13 +485,13 @@
                     <span class="srv-k">Libraries</span>
                     <div class="srv-r-libhead">
                         <span class="srv-lib-num${enabledLibs < libCount ? ' warn' : ''}">${enabledLibs}</span>
-                        <span class="srv-lib-sub">of ${libCount} ${libCount === 1 ? 'library' : 'libraries'} enabled</span>
+                        <span class="srv-lib-sub">${libCount === 1 ? '1 library enabled' : `${libCount} libraries enabled`}</span>
                     </div>
                     ${libraryBarHtml(libraries, enabledLibs)}
                     <div class="srv-chips">${libraryChipsHtml(libraries)}</div>
                 </div>
                 <div class="srv-r-health">
-                    <span class="srv-k">Setup health</span>
+                    <span class="srv-k">Setup Health</span>
                     <div class="srv-issue">
                         <span class="server-readiness-glyph d-none"
                               id="server-readiness-${id}"
@@ -561,9 +561,9 @@
             return;
         }
         const libs = servers.reduce((n, sv) => n + (sv.libraries || []).filter((l) => l.enabled).length, 0);
-        el.innerHTML = `<span><b>${servers.length}</b> ${servers.length === 1 ? 'server' : 'servers'}</span>`
+        el.innerHTML = `<span>${servers.length === 1 ? '1 server' : `${servers.length} servers`}</span>`
             + '<span class="srv-sep"></span>'
-            + `<span><b>${libs}</b> ${libs === 1 ? 'library' : 'libraries'} enabled</span>`
+            + `<span>${libs === 1 ? '1 library enabled' : `${libs} libraries enabled`}</span>`
             + '<span class="srv-sep"></span>'
             + '<span id="serverSummaryStatus" role="status">Checking servers…</span>';
     }
