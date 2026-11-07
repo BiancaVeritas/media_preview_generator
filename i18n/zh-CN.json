@@ -219,7 +219,7 @@
   ],
   [
    "Clear all {0} jobs from the history?",
-   "从历史记录中清除全部{0}的任务？"
+   "从历史记录中清除{0}的任务？"
   ],
   [
    "Through a Plex database node: {0}{1}",
