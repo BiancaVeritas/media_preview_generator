@@ -1979,9 +1979,16 @@ def _process_canonical_path_previews(
         except Exception:
             pass
 
-    # "Check previews": the preview already on disk is measured as well as trusted, and one that can't be right is
-    # deleted so this same run rebuilds it. Everything else is the ordinary flow: a file with no preview is generated,
-    # a file whose preview passes is skipped as usual. The option adds the measurement, it does not replace the run.
+    # "Check previews": the preview already on disk is measured as well as trusted, and a wrong one is rebuilt by this
+    # same run. Everything else is the ordinary flow: a file with no preview is generated, a file whose preview passes
+    # is skipped. The option adds the measurement, it does not replace the run.
+    #
+    # The bad file is NOT deleted up front: the regeneration may fail (a stream that stopped answering, a 403 from the
+    # share), and deleting first would leave the library with nothing where it used to have a partly usable preview.
+    # Instead the path is remembered and the freshness probe below is forced to say "not fresh", so this run rebuilds
+    # it; the old file is replaced on success and left alone on failure.
+    # The previews this run measured and found wrong; see the block below, which fills it.
+    audited_bad: set[str] = set()
     if audit_existing:
         from ..previews_audit import check_preview
 
@@ -2001,14 +2008,10 @@ def _process_canonical_path_previews(
                 if found is None:
                     continue
                 broken += 1
-                logger.info("Preview check: {} is wrong ({}); rebuilding it", output, found.reason)
-                for target in (str(output), str(output) + ".meta"):
-                    try:
-                        os.unlink(target)
-                    except FileNotFoundError:
-                        pass
-                    except OSError as exc:
-                        logger.warning("Preview check: could not delete {}: {}", target, exc)
+                audited_bad.add(str(output))
+                logger.info(
+                    "Preview check: {} is wrong ({}); rebuilding it in this run", output, found.reason
+                )
         if checked == 0:
             logger.debug("Preview check: {} has no preview yet, so this run generates one", canonical_path)
         elif broken == 0:
@@ -2039,6 +2042,11 @@ def _process_canonical_path_previews(
                 all_fresh = False
                 break
             if not paths or not _outputs_fresh(adapter, paths, canonical_path):
+                all_fresh = False
+                break
+            # Measured as wrong above: treat it as stale so this run rebuilds it. The check still runs first, so a
+            # failed regeneration leaves the old file in place rather than an empty slot.
+            if audited_bad.intersection(str(path) for path in paths):
                 all_fresh = False
                 break
             fresh_checks.append((server, adapter, item_id, paths))
@@ -2488,12 +2496,22 @@ def _process_canonical_path_previews(
                 return _source_changed_result()
             _phase(f"Publishing to {server.name}…")
             item_id = resolve_item_id(server, item_id_hint)
+            bundle = _bundle_for_server(server)
+            # The preview this run measured as wrong must be replaced, not skipped because its old file is still
+            # there. Checked per publisher: another server owning the same file keeps its healthy preview.
+            replace_broken = False
+            if audited_bad:
+                try:
+                    existing = adapter.compute_output_paths(bundle, server, item_id)
+                except Exception:
+                    existing = []
+                replace_broken = any(str(path) in audited_bad for path in existing or [])
             outcome = _publish_one(
                 server,
                 adapter,
-                _bundle_for_server(server),
+                bundle,
                 item_id,
-                skip_if_exists=not regenerate,
+                skip_if_exists=not regenerate and not replace_broken,
                 frame_source=upstream_frame_source,
                 deleted_paths=deleted_paths,
             )

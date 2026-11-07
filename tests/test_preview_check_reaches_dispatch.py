@@ -43,7 +43,22 @@ def test_the_check_happens_before_the_already_existing_shortcut():
     fresh_at = source.index("if not regenerate:", audit_at)
     assert audit_at < fresh_at, "the check must precede the 'outputs already fresh' shortcut"
 
-    # And it deletes the bad preview, which is what makes the shortcut below fall through to generation.
+    # It records the bad path and never answers "already done" itself; the old file is left in place so a failed
+    # regeneration cannot leave the library with nothing.
     block = source[audit_at:fresh_at]
-    assert "os.unlink" in block
+    assert "audited_bad.add" in block
+    assert "os.unlink" not in block, "the bad preview must survive a regeneration that fails"
     assert "SKIPPED_OUTPUT_EXISTS" not in block, "the check must not answer 'already done' by itself"
+
+
+def test_a_measured_bad_preview_is_rebuilt_rather_than_skipped():
+    """Two places would otherwise skip it: the freshness probe, and publish's skip_if_exists."""
+    from media_preview_generator.processing import multi_server
+
+    source = inspect.getsource(multi_server)
+
+    # The freshness probe treats it as stale, so FFmpeg runs.
+    assert "if audited_bad.intersection(str(path) for path in paths):" in source
+    # And the publish step replaces the old file instead of skipping it because it exists.
+    assert "skip_if_exists=not regenerate and not replace_broken" in source
+    assert "replace_broken = any(str(path) in audited_bad for path in existing or [])" in source

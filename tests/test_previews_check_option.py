@@ -127,9 +127,11 @@ def test_the_option_adds_a_check_without_replacing_the_run():
     ).read_text(encoding="utf-8")
 
     start = source.index("if audit_existing:")
-    block = source[start : start + 2200]
-    # It deletes a broken preview (so this run rebuilds it) and never returns early as "already done".
-    assert "os.unlink" in block
+    block = source[start : start + 2600]
+    # It records the broken preview (so this run rebuilds it) and never returns early as "already done". The old file
+    # stays on disk until the rebuild succeeds: deleting first lost the preview when FFmpeg failed.
+    assert "audited_bad.add" in block
+    assert "os.unlink" not in block
     assert "SKIPPED_OUTPUT_EXISTS" not in block
     assert "return MultiServerResult" not in block
 
