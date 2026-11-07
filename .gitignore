@@ -93,3 +93,6 @@ docs/vendor/
 
 # benchmark_previews.py output: private until a quiet-GPU rerun is approved; publish with git add -f
 docs/benchmark/
+
+# pytest's tmp_path fallback folder, when PYTEST_DEBUG_TEMPROOT is unset
+pytest-of-*/
