@@ -2107,9 +2107,12 @@ def _build_idle_workers_from_config():
                 continue
             for index in range(policy["count"]):
                 worker_id += 1
+                # A slot's own number within its group member (1..count), what the dashboard shows. ``worker_id`` is only
+                # an identifier: it counts every slot ever created, so a group removed and added again kept climbing.
                 entry = {
                     **idle_entry,
                     "worker_id": worker_id,
+                    "slot_number": index + 1,
                     "worker_type": policy["resource"].upper(),
                     "worker_name": f"{policy['name']} {index + 1}",
                     "group_id": policy["group_id"],

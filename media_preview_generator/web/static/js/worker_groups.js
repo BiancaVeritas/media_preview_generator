@@ -504,10 +504,19 @@
         const next = {};
         occupiedWorkerGroups = new Set((workers || []).filter(worker => worker.status !== 'idle').map(worker => String(worker.group_id || 'unassigned')));
         idleByMember = new Map();
+        // Numbered 1..N within each member rather than shown by worker_id: that counter only ever grows on the server,
+        // so a group removed and added again would start at "#7 #8". Oldest first, so a slot keeps its number while it
+        // lives.
+        const idleByMemberRaw = new Map();
         for (const worker of workers || []) {
             if (worker.status === 'processing' || worker.fallback_active) continue;
             const key = memberKey(String(worker.group_id || 'unassigned'), worker.member_id);
-            idleByMember.set(key, [...(idleByMember.get(key) || []), worker.worker_id]);
+            idleByMemberRaw.set(key, [...(idleByMemberRaw.get(key) || []), worker]);
+        }
+        for (const [key, list] of idleByMemberRaw) {
+            const ordered = list.slice().sort((a, b) => (a.worker_id || 0) - (b.worker_id || 0));
+            // slot_number is the server's own 1..N within the member; worker_id is only the fallback for an older API.
+            idleByMember.set(key, ordered.map((worker, index) => Number.isFinite(worker.slot_number) ? worker.slot_number : index + 1));
         }
         renderIdleRows();
         for (const worker of workers || []) {

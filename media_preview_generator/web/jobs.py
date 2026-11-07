@@ -390,6 +390,8 @@ class WorkerStatus:
     """Status information for a single worker."""
 
     worker_id: int = 0
+    #: The slot's own number within its group member (1..count), which is what the dashboard shows.
+    slot_number: int = 0
     worker_type: str = "CPU"  # "GPU" or "CPU"
     worker_name: str = "CPU Worker"
     group_id: str | None = None

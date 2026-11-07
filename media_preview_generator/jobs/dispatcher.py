@@ -2124,12 +2124,23 @@ class JobDispatcher:
         if not isinstance(nodes, NodeHardware):
             nodes = EMPTY_NODE_HARDWARE
 
+        # Numbered among the workers listed here, not by worker_id: that counter only ever grows, so a group deleted and
+        # added again showed "#7 #8" for its first two slots. The order is by worker_id so a slot keeps its number while
+        # it lives, and the numbers stay 1..N per node and type.
         type_counters: dict[tuple[str | None, str], int] = {}
         worker_type_index: dict[int, int] = {}
-        for w in all_workers:
+        for w in sorted(all_workers, key=lambda worker: worker.worker_id):
             counter_key = (worker_node_id(w), w.worker_type)
             type_counters[counter_key] = type_counters.get(counter_key, 0) + 1
             worker_type_index[w.worker_id] = type_counters[counter_key]
+        # The same number per group member, which is what the dashboard's idle chips show: worker_id counts every slot
+        # the pool ever made, so a group deleted and added again would start at "#7 #8" there too.
+        member_counters: dict[tuple[str, str], int] = {}
+        worker_slot_index: dict[int, int] = {}
+        for w in sorted(all_workers, key=lambda worker: worker.worker_id):
+            member_key = (str(w.group_id or ""), str(w.member_id or ""))
+            member_counters[member_key] = member_counters.get(member_key, 0) + 1
+            worker_slot_index[w.worker_id] = member_counters[member_key]
 
         statuses = []
         for worker in all_workers:
@@ -2183,6 +2194,7 @@ class JobDispatcher:
             statuses.append(
                 {
                     "worker_id": worker.worker_id,
+                    "slot_number": worker_slot_index[worker.worker_id],
                     "worker_type": worker.worker_type,
                     "group_id": group_id,
                     "member_id": member_id,
