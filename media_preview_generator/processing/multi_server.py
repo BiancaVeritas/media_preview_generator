@@ -1979,14 +1979,14 @@ def _process_canonical_path_previews(
         except Exception:
             pass
 
-    # "Check existing": the previews already on disk are read first, and only the files whose preview can't be right
-    # go on to FFmpeg. A healthy preview is as good as a fresh one, so the file is finished here — the same result the
-    # ordinary skip-if-exists path gives, reached by measuring the preview instead of trusting it.
-    audited_bad: set[str] = set()
+    # "Check previews": the preview already on disk is measured as well as trusted, and one that can't be right is
+    # deleted so this same run rebuilds it. Everything else is the ordinary flow: a file with no preview is generated,
+    # a file whose preview passes is skipped as usual. The option adds the measurement, it does not replace the run.
     if audit_existing:
         from ..previews_audit import check_preview
 
-        # One probe per publisher: the preview path each adapter would write, checked against the source's runtime.
+        checked = 0
+        broken = 0
         for server, adapter, item_id_hint in publishers:
             try:
                 item_id = resolve_item_id(server, item_id_hint)
@@ -1996,28 +1996,23 @@ def _process_canonical_path_previews(
             for output in paths:
                 if output.suffix.lower() != ".bif" or not output.exists():
                     continue
+                checked += 1
                 found = check_preview(canonical_path, str(output), default_interval_s=probe_frame_interval)
                 if found is None:
                     continue
-                audited_bad.add(str(output))
+                broken += 1
                 logger.info("Preview check: {} is wrong ({}); rebuilding it", output, found.reason)
-        if not audited_bad:
-            logger.info("Preview check: the existing preview for {} is sound; nothing to rebuild", canonical_path)
-            return MultiServerResult(
-                canonical_path=canonical_path,
-                status=MultiServerStatus.SKIPPED_OUTPUT_EXISTS,
-                message="Its preview passed the check",
-            )
-        # Delete just the previews that failed: the freshness check below then sees them missing and runs FFmpeg,
-        # while every other file in the job keeps its preview and is skipped as usual.
-        for broken in audited_bad:
-            for target in (broken, broken + ".meta"):
-                try:
-                    os.unlink(target)
-                except FileNotFoundError:
-                    pass
-                except OSError as exc:
-                    logger.warning("Preview check: could not delete {}: {}", target, exc)
+                for target in (str(output), str(output) + ".meta"):
+                    try:
+                        os.unlink(target)
+                    except FileNotFoundError:
+                        pass
+                    except OSError as exc:
+                        logger.warning("Preview check: could not delete {}: {}", target, exc)
+        if checked == 0:
+            logger.debug("Preview check: {} has no preview yet, so this run generates one", canonical_path)
+        elif broken == 0:
+            logger.debug("Preview check: the preview for {} is sound; it is left as it is", canonical_path)
 
     if not regenerate:
         # "Checking existing previews…" belongs to the decoupled checking

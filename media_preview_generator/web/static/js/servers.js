@@ -578,9 +578,11 @@
             const g = c.querySelector('.server-readiness-glyph');
             return !!g && (g.dataset.state === 'critical' || g.dataset.state === 'recommended');
         }).length;
-        if (attention > 0) el.innerHTML = `<b class="srv-warn">${attention}</b> need${attention === 1 ? 's' : ''} attention`;
+        // One string per phrase: the catalogue is keyed by whole text nodes, so a <b> around one word splits the
+        // sentence and leaves it half translated.
+        if (attention > 0) el.innerHTML = `<b class="srv-warn">${attention === 1 ? '1 server needs attention' : `${attention} servers need attention`}</b>`;
         else if (pending > 0) el.textContent = 'Checking servers…';
-        else el.innerHTML = '<b class="srv-ok">All</b> healthy';
+        else el.innerHTML = '<b class="srv-ok">All servers healthy</b>';
     }
 
     // Shared by the card's trash button and the Delete button in the Edit modal. Resolves true when deleted.

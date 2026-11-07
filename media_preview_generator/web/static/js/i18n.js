@@ -176,7 +176,8 @@
             translateText(root);
             return;
         }
-        if (root.nodeType !== 1) {
+        // A DocumentFragment (the template used for markup) has no parentElement of its own.
+        if (root.nodeType !== 1 && root.nodeType !== 11) {
             return;
         }
         if (skipped(root)) {
@@ -209,6 +210,83 @@
         var hit = lookup(document.title);
         if (hit !== null && hit !== document.title) {
             document.title = hit;
+        }
+    }
+
+    /* ---- Translating markup before it reaches the page --------------------------------
+
+     * The observer can only translate after the browser has painted, which is the flash of
+     * English this fixes. Markup the app builds itself is translated here instead, in the
+     * innerHTML setter, so it is Chinese the first time it is ever rendered. */
+
+    // The native setters, captured before they are wrapped: calling the wrapped one from inside a hook would recurse.
+    var nativeInnerHTML = null;
+    var nativeTextContent = null;
+
+    function translateMarkup(markup) {
+        if (typeof markup !== "string" || !markup || markup.indexOf("<") < 0) {
+            return translateMarkupText(markup);
+        }
+        if (!nativeInnerHTML || !/[A-Za-z]{3}/.test(markup)) {
+            return markup;
+        }
+        try {
+            var template = document.createElement("template");
+            nativeInnerHTML.set.call(template, markup);
+            translateTree(template.content);
+            return nativeInnerHTML.get.call(template);
+        } catch (error) {
+            return markup;
+        }
+    }
+
+    // A plain string written with textContent: translated only when it is a label the catalogue knows.
+    function translateMarkupText(value) {
+        if (typeof value !== "string" || value.length < 3 || value.length > 200) {
+            return value;
+        }
+        var hit = lookup(value);
+        return hit === null ? value : hit;
+    }
+
+    function installMarkupHooks() {
+        if (lang !== "zh-CN" || !hasCatalogue || window.__mpgMarkupHooks) {
+            return;
+        }
+        window.__mpgMarkupHooks = true;
+        var elementProto = window.Element && window.Element.prototype;
+        if (!elementProto) {
+            return;
+        }
+        var innerHtml = Object.getOwnPropertyDescriptor(elementProto, "innerHTML");
+        if (innerHtml && innerHtml.set) {
+            nativeInnerHTML = innerHtml;
+            Object.defineProperty(elementProto, "innerHTML", {
+                configurable: true,
+                enumerable: innerHtml.enumerable,
+                get: innerHtml.get,
+                set: function (value) {
+                    innerHtml.set.call(this, translateMarkup(String(value)));
+                }
+            });
+        }
+        var textContent = Object.getOwnPropertyDescriptor(window.Node.prototype, "textContent");
+        if (textContent && textContent.set) {
+            nativeTextContent = textContent;
+            Object.defineProperty(window.Node.prototype, "textContent", {
+                configurable: true,
+                enumerable: textContent.enumerable,
+                get: textContent.get,
+                set: function (value) {
+                    textContent.set.call(this, translateMarkupText(value));
+                }
+            });
+        }
+        if (typeof elementProto.insertAdjacentHTML === "function") {
+            var insertAdjacentHTML = elementProto.insertAdjacentHTML;
+            elementProto.insertAdjacentHTML = function (position, markup) {
+                return insertAdjacentHTML.call(this, position, translateMarkup(String(markup)));
+            };
         }
     }
 
@@ -316,6 +394,8 @@
     }
 
     syncCookies();
+    // Before anything writes markup: app.js builds most of the dashboard with innerHTML.
+    installMarkupHooks();
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function () {

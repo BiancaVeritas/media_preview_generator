@@ -24,14 +24,11 @@
                             <div class="ov-hint" id="jobProcessingModeHint">Skips files that already have a preview.</div>
                         </div>
                         <div class="ov-fld" id="jobAuditModeGroup">
-                            <div class="ov-lbl" id="jobAuditModeLabel">Preview check
-                                <button type="button" class="info-icon" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" title="Generate previews as usual, or first check the previews already on disk and rebuild only the ones that can't be right." data-explain-title="Preview check" data-explain-template="infoJobAuditModeTpl" aria-label="Generate previews as usual, or first check the previews already on disk and rebuild only the ones that can't be right."><i class="bi bi-info-circle" aria-hidden="true"></i></button>
-                            </div>
-                            <div class="ov-seg" role="radiogroup" aria-labelledby="jobAuditModeLabel">
-                                <span class="ov-seg-opt"><input type="radio" name="jobAuditMode" id="jobAuditOff" value="off" checked><label for="jobAuditOff"><i class="bi bi-play-circle" aria-hidden="true"></i>Normal</label></span>
-                                <span class="ov-seg-opt"><input type="radio" name="jobAuditMode" id="jobAuditOn" value="audit"><label for="jobAuditOn"><i class="bi bi-clipboard-check" aria-hidden="true"></i>Check existing</label></span>
-                            </div>
-                            <div class="ov-hint" id="jobAuditModeHint">Generates previews as usual.</div>
+                            <label class="ov-switch" for="jobAuditOn">
+                                <input type="checkbox" id="jobAuditOn"><span class="ov-track" aria-hidden="true"></span>Check previews too
+                                <button type="button" class="info-icon" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" title="Measures the preview already on disk against the video's runtime and rebuilds it when it can't be right. Files without a preview are generated as usual." data-explain-title="Check previews too" data-explain-template="infoJobAuditModeTpl" aria-label="Measures the preview already on disk against the video's runtime and rebuilds it when it can't be right."><i class="bi bi-info-circle" aria-hidden="true"></i></button>
+                            </label>
+                            <div class="ov-hint" id="jobAuditModeHint">Off: previews are generated as usual.</div>
                         </div>
                         <div class="ov-fld" id="jobMarkersForceGroup" hidden>
                             <label class="ov-switch" for="jobMarkersForce">
@@ -47,8 +44,8 @@
     <p><strong>Regenerate all</strong> redoes every file, including ones that already exist, e.g. after changing thumbnail quality.</p>
 </template>
 <template id="infoJobAuditModeTpl">
-    <p><strong>Normal</strong> generates previews as usual.</p>
-    <p><strong>Check existing</strong> first reads the previews already on disk and compares each one's frame count with its video's runtime. A preview that stops after a few frames, or holds far more frames than the video has intervals, can't be right: only those files are rebuilt. It is much faster than regenerating the library, and it finds the previews a finished job left broken.</p>
+    <p><strong>Off</strong> generates previews as usual: missing ones are made, existing ones are skipped.</p>
+    <p><strong>On</strong> does that too, and additionally measures each preview already on disk against its video's runtime. A preview that stops after a few frames, or holds far more frames than the video has intervals, can't be right: it is deleted and rebuilt in the same run. Files with no preview are generated as usual.</p>
 </template>
                 </form>
             </div>

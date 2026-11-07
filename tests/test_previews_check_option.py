@@ -93,7 +93,10 @@ def test_both_previews_dialogs_offer_it():
     for name in ("_start_job_modal.html", "_manual_job_modal.html"):
         page = (root / name).read_text(encoding="utf-8")
         assert 'id="jobAuditOn"' in page or 'id="manualAuditOn"' in page, name
-        assert "Normal" in page and "Check existing" in page, name
+        # A switch, matching the other on/off options of the dialog.
+        assert "ov-switch" in page, name
+        assert "Check previews too" in page, name
+        assert "Check existing" not in page, name
 
 
 def test_the_run_job_dialog_sends_the_flag():
@@ -111,6 +114,22 @@ def test_the_run_job_dialog_sends_the_flag():
 
     assert "jobConfig.audit_existing = true" in app_js
     assert "payload.audit_existing = document.getElementById('manualAuditOn').checked" in manual_js
+
+
+def test_the_option_adds_a_check_without_replacing_the_run():
+    """A file with no preview is still generated; the option only also measures the ones already there."""
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1] / "media_preview_generator" / "processing" / "multi_server.py"
+    ).read_text(encoding="utf-8")
+
+    start = source.index("if audit_existing:")
+    block = source[start : start + 2200]
+    # It deletes a broken preview (so this run rebuilds it) and never returns early as "already done".
+    assert "os.unlink" in block
+    assert "SKIPPED_OUTPUT_EXISTS" not in block
+    assert "return MultiServerResult" not in block
 
 
 def test_the_audit_option_is_hidden_for_other_job_types():

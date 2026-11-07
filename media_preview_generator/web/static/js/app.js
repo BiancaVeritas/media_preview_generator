@@ -3746,13 +3746,10 @@ function _syncJobDialog(prefix = 'job') {
     const auditHint = document.getElementById('jobAuditModeHint');
     if (auditHint) {
         auditHint.textContent = auditing
-            ? 'Checks the previews already on disk and rebuilds only the ones that are wrong. Existing good previews are kept.'
-            : 'Generates previews as usual.';
+            ? 'Each preview already on disk is measured too; a wrong one is rebuilt in this run, and files without one are generated as usual.'
+            : 'Off: previews are generated as usual.';
         auditHint.classList.toggle('ov-warn', !!auditing);
     }
-    // The processing mode means nothing when only the broken previews are rebuilt.
-    const modeGroup = document.getElementById('jobProcessingModeGroup');
-    if (modeGroup) modeGroup.classList.toggle('ov-muted', !!auditing);
 
     const summary = document.getElementById(_JOB_DIALOG_IDS[prefix].summary);
     if (summary) {
@@ -3764,7 +3761,8 @@ function _syncJobDialog(prefix = 'job') {
         if (prefix === 'schedule') {
             const lookback = document.getElementById('scheduleLookback');
             const lookbackText = lookback?.options[lookback.selectedIndex]?.text.toLowerCase() || '';
-            parts.unshift(document.getElementById('scheduleFilesRecent')?.checked ? `Recently added, ${lookbackText}` : 'Whole library');
+            const filesScope = document.getElementById('scheduleFilesRecent')?.checked ? `Recently added, ${lookbackText}` : 'Whole library';
+            parts.unshift(filesScope);
         }
         const taskChips = types.map(type => `<span class="ov-task"><i class="bi ${type.icon}" aria-hidden="true"></i>${escapeHtml(type.name)}</span>`).join('');
         summary.innerHTML = taskChips
@@ -4050,7 +4048,7 @@ function _buildPreviewsJob() {
     const scanFilters = MediaScanFilters.read('job');
     if (scanFilters === null) return null;
     const jobConfig = { force_generate: forceRegenerate, ...scanFilters };
-    // "Check existing" reads the previews already on disk and rebuilds only the ones that can't be right.
+    // "Check previews too": the same run also measures each preview already on disk and rebuilds the ones that are wrong.
     if (document.getElementById('jobAuditOn')?.checked) jobConfig.audit_existing = true;
     if (sortBy) {
         jobConfig.sort_by = sortBy;
