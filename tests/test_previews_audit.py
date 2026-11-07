@@ -141,12 +141,46 @@ def test_a_short_clip_is_skipped(tmp_path, monkeypatch, media):
     assert check_preview(str(source), str(preview)) is None
 
 
-def test_an_unknown_runtime_is_skipped(tmp_path, monkeypatch, media):
+def test_an_unknown_runtime_no_longer_hides_a_truncated_preview(tmp_path, monkeypatch, media):
+    """A .strm link that 403s used to make the audit silently call a 1-frame preview healthy.
+
+    With no usable runtime at all, a preview that only covers the opening is still recognisably wrong, so it is
+    reported rather than skipped. This is the case the six real broken BIFs landed in.
+    """
     source, _ = media("film.mkv", 2400)
     preview = _write_bif(tmp_path / "film-320-10.bif", 1)
     _stub_runtime(monkeypatch, None)
 
-    assert check_preview(str(source), str(preview)) is None
+    problem = check_preview(str(source), str(preview))
+
+    assert problem is not None
+    assert problem.frames == 1
+    assert problem.expected_frames is None
+
+
+def test_a_known_runtime_is_used_without_probing(tmp_path, monkeypatch, media):
+    """A runtime the caller already has (server record / json) must not trigger a network probe."""
+    source, _ = media("film.strm", 2400)
+    preview = _write_bif(tmp_path / "film-320-10.bif", 1)
+    monkeypatch.setattr(
+        "media_preview_generator.previews_audit._runtime_seconds",
+        lambda _path: pytest.fail("the .strm link must not be probed when a runtime is already known"),
+    )
+
+    problem = check_preview(str(source), str(preview), runtime_s=2400)
+
+    assert problem is not None and problem.expected_frames == pytest.approx(240)
+
+
+def test_a_good_preview_with_a_known_runtime_passes(tmp_path, monkeypatch, media):
+    """The json-first path must still let a complete preview through."""
+    source, _ = media("film.strm", 2400)
+    preview = _write_bif(tmp_path / "film-320-10.bif", 240)
+    monkeypatch.setattr(
+        "media_preview_generator.previews_audit._runtime_seconds", lambda _path: 2400, raising=True
+    )
+
+    assert check_preview(str(source), str(preview), runtime_s=2400) is None
 
 
 def test_the_interval_comes_from_the_file_name(tmp_path, monkeypatch, media):

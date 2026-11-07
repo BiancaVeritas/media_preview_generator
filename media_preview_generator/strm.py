@@ -18,6 +18,7 @@ cached, so a job's many probes don't re-read it each time.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from dataclasses import dataclass
@@ -26,6 +27,10 @@ from functools import lru_cache
 STRM_SUFFIX = ".strm"
 #: How many ``.strm`` files may point at another before the chain is called a loop.
 MAX_STRM_DEPTH = 5
+#: StrmAssistant writes the media info it probed once into ``<name>-mediainfo.json`` beside the .strm. If it is there,
+#: using its RunTimeTicks avoids touching the cloud link at all (repeated probes can trip a share's rate limiting).
+MEDIAINFO_SUFFIX = "-mediainfo.json"
+_RUNTIME_TICKS_KEY = "RunTimeTicks"
 
 #: A URL scheme (``https://``, ``rtsp://``, ``udp://``); a Windows drive letter isn't one.
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*://")
@@ -191,3 +196,49 @@ def ffmpeg_input(path: str | os.PathLike[str], *, always_protocol: bool = False)
     if source.is_strm:
         return source.input
     return f"file:{source.input}" if always_protocol else source.input
+
+
+def _ticks_in(value: object) -> int | None:
+    """The first ``RunTimeTicks`` in a parsed json (StrmAssistant nests it under ``MediaSourceInfo``)."""
+    if isinstance(value, dict):
+        ticks = value.get(_RUNTIME_TICKS_KEY)
+        if isinstance(ticks, int) and not isinstance(ticks, bool) and ticks > 0:
+            return ticks
+        for nested in value.values():
+            found = _ticks_in(nested)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for nested in value:
+            found = _ticks_in(nested)
+            if found is not None:
+                return found
+    return None
+
+
+@lru_cache(maxsize=4096)
+def _sidecar_runtime(path: str, _mtime_ns: int, _size: int) -> float | None:
+    """Runtime from ``<name>-mediainfo.json`` for one .strm state; the state is in the key so a rewrite is re-read."""
+    candidate = path[: -len(STRM_SUFFIX)] + MEDIAINFO_SUFFIX
+    try:
+        with open(candidate, encoding="utf-8-sig") as handle:
+            ticks = _ticks_in(json.load(handle))
+    except (OSError, ValueError):
+        return None
+    return ticks / 10_000_000.0 if ticks is not None else None  # 100 ns ticks -> seconds
+
+
+def sidecar_runtime_seconds(path: str | os.PathLike[str]) -> float | None:
+    """A .strm's runtime from StrmAssistant's ``<name>-mediainfo.json``, in seconds, or None.
+
+    Preferred over probing the link when present: it was written from a successful probe, so reading it costs no
+    network request at all. Absent or unreadable, the caller probes the URL itself.
+    """
+    text = os.fspath(path)
+    if not is_strm(text):
+        return None
+    try:
+        info = os.stat(text)
+    except OSError:
+        return None
+    return _sidecar_runtime(os.path.abspath(text), info.st_mtime_ns, info.st_size)

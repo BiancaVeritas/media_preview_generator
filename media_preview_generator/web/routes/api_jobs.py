@@ -2165,6 +2165,7 @@ def _build_idle_workers_from_config():
             statuses.append(
                 {
                     "worker_id": worker_id,
+                    "slot_number": gpu_seq,
                     "worker_type": "GPU",
                     "worker_name": gpu_worker_label(gpu_seq, device_label),
                     **idle_entry,
@@ -2177,6 +2178,7 @@ def _build_idle_workers_from_config():
         statuses.append(
             {
                 "worker_id": worker_id,
+                "slot_number": cpu_seq,
                 "worker_type": "CPU",
                 "worker_name": cpu_worker_label(cpu_seq),
                 **idle_entry,

@@ -2003,11 +2003,28 @@ def _process_canonical_path_previews(
                 paths = adapter.compute_output_paths(_probe_bundle(server.id), server, item_id)
             except Exception:
                 continue
+            # The check reads the .strm's real URL itself (ffprobe, with the same reopen-on-short-answer retries as
+            # generation); a runtime hint from the media server is only a shortcut when it happens to be known, never
+            # a requirement. No third-party json is read.
+            runtime_s: float | None = None
+            get_runtime = getattr(server, "get_runtime_ms", None)
+            if callable(get_runtime) and item_id:
+                try:
+                    runtime_ms = get_runtime(item_id)
+                    if runtime_ms and runtime_ms > 0:
+                        runtime_s = runtime_ms / 1000.0
+                except Exception:
+                    pass
             for output in paths:
                 if output.suffix.lower() != ".bif" or not output.exists():
                     continue
                 checked += 1
-                found = check_preview(canonical_path, str(output), default_interval_s=probe_frame_interval)
+                found = check_preview(
+                    canonical_path,
+                    str(output),
+                    default_interval_s=probe_frame_interval,
+                    runtime_s=runtime_s,
+                )
                 if found is None:
                     continue
                 broken += 1

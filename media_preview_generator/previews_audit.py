@@ -18,13 +18,19 @@ which regenerates only the files this reports.
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from loguru import logger
 
 from .bif_reader import read_bif_metadata
-from .strm import StrmError, media_input
+from .strm import StrmError, is_network_input, media_input
+
+#: A cloud-backed .strm's HTTP link often answers the first probe with a 403 or just the opening. The generation
+#: pipeline already reopens it (0s, 2s, 8s) and reads the whole file on the second try; the audit's one-shot probe
+#: used to give up and silently call an obviously truncated preview healthy. Mirror those delays here.
+RUNTIME_RETRY_DELAYS_S: tuple[int, ...] = (0, 2, 8)
 
 #: A preview must hold this share of the frames its runtime asks for to count as healthy.
 #:
@@ -45,6 +51,11 @@ SHORTFALL_TOLERANCE_S = 300
 MAX_HEALTHY_FRAME_SHARE = 1.5
 #: Files this short have so few thumbnails that the share can't tell a good preview from a bad one, so they are skipped.
 MIN_AUDIT_DURATION_S = 60
+#: With no usable runtime, a preview covering less than this cannot be the preview of any real video. At a 10 s
+#: interval that is ~15 minutes (90 frames): well below a feature film, an episode, or a normal clip, but far above
+#: the 1–7 frames a run that died after the opening leaves behind. Guards the case where a .strm HTTP source returns
+#: 403 (no runtime at all) or serves just the header (ffprobe reports a few seconds).
+MIN_PLAUSIBLE_COVERAGE_S = 900
 
 
 @dataclass(frozen=True)
@@ -66,8 +77,8 @@ class PreviewProblem:
     expected_frames: float | None
 
 
-def _runtime_seconds(media_path: str) -> float | None:
-    """The source's runtime in seconds, or None when it can't be read cheaply."""
+def _probe_runtime_once(media_path: str) -> float | None:
+    """One attempt at reading the runtime; None when this answer is unusable."""
     from .processing.generator import read_media_info
 
     try:
@@ -76,6 +87,41 @@ def _runtime_seconds(media_path: str) -> float | None:
         return None
     duration_ms = float(getattr(info.video_tracks[0], "duration", 0) or 0) if info.video_tracks else 0.0
     return duration_ms / 1000.0 if duration_ms > 0 else None
+
+
+def _runtime_seconds(media_path: str) -> float | None:
+    """The source's runtime in seconds, or None when it can't be read.
+
+    Order deliberately avoids hammering the cloud link:
+
+    1. ``<name>-mediainfo.json`` beside a .strm (StrmAssistant probed it once and saved the answer) — zero network.
+    2. Otherwise probe the source ourselves. A network source gets the same reopen-on-short-answer retries as the
+       generation pipeline: the first request can 403 or serve only the header, and a fresh connection a moment later
+       reads the whole file. A duration that still comes back implausibly short is treated as a failed probe, not as
+       the truth — blessing a one-frame preview beside a ten-second "runtime" was how truncated previews slipped
+       through.
+    """
+    from .strm import sidecar_runtime_seconds
+
+    sidecar = sidecar_runtime_seconds(media_path)
+    if sidecar is not None and sidecar > 0:
+        return sidecar
+
+    first = _probe_runtime_once(media_path)
+    if not is_network_input(media_path):
+        return first
+    best = first
+    for delay in RUNTIME_RETRY_DELAYS_S[1:]:
+        if best is not None and best >= MIN_AUDIT_DURATION_S:
+            break
+        time.sleep(delay)
+        attempt = _probe_runtime_once(media_path)
+        if attempt is not None and (best is None or attempt > best):
+            best = attempt
+    # A few seconds from a cloud link is the opening, not the film; never let it stand in for the runtime.
+    if best is not None and best < MIN_AUDIT_DURATION_S:
+        return None
+    return best
 
 
 def _expected_frames(runtime_s: float | None, interval_s: int) -> float | None:
@@ -93,13 +139,23 @@ def _interval_from_name(preview: Path, default: int) -> int:
         return default
 
 
-def check_preview(media_path: str, preview_path: str, *, default_interval_s: int = 10) -> PreviewProblem | None:
+def check_preview(
+    media_path: str,
+    preview_path: str,
+    *,
+    default_interval_s: int = 10,
+    runtime_s: float | None = None,
+) -> PreviewProblem | None:
     """Whether one preview can be the preview of its source.
 
     Args:
         media_path: The library file the preview belongs to.
         preview_path: The ``.bif`` to check.
         default_interval_s: The thumbnail interval to assume when the file name doesn't state one.
+        runtime_s: An optional runtime the caller already knows (the media server's own record). When it is given, the
+            source is NOT probed — that avoids a network request to the cloud link. Without one, the source is read
+            ourselves: first ``<name>-mediainfo.json`` if it exists, else the real URL with retries. No repeated
+            probing of a share just because a metadata file was already there.
 
     Returns:
         The problem, or None when the preview holds a plausible number of frames.
@@ -125,13 +181,47 @@ def check_preview(media_path: str, preview_path: str, *, default_interval_s: int
         )
 
     interval_s = max(1, round((metadata.frame_interval_ms or default_interval_s * 1000) / 1000))
-    runtime_s = _runtime_seconds(media_path)
+    # A known runtime (the media server's own record, or the <name>-mediainfo.json StrmAssistant already wrote) wins:
+    # it costs no network request, so a cloud share is never probed repeatedly. Only when there is no known runtime do
+    # we read the real .strm URL ourselves — with retries, since that link is what can 403 or serve just the opening.
+    if runtime_s is None or runtime_s <= 0:
+        runtime_s = _runtime_seconds(media_path)
     expected = _expected_frames(runtime_s, interval_s)
     if expected is None or runtime_s is None:
-        return None
-    if runtime_s < MIN_AUDIT_DURATION_S:
+        # No trustworthy runtime from either the server or ffprobe. Don't silently call a one-frame preview healthy:
+        # a preview that covers only a handful of intervals cannot be the preview of any full-length video. This is the
+        # case a .strm link returning 403 lands in, and exactly the broken previews this audit was written to find.
+        covered_s = metadata.frame_count * interval_s
+        if covered_s < MIN_PLAUSIBLE_COVERAGE_S:
+            return PreviewProblem(
+                media_path=media_path,
+                preview_path=preview_path,
+                reason=(
+                    f"只有 {metadata.frame_count} 张缩略图（覆盖约 {covered_s / 60:.0f} 分钟），"
+                    f"且读不到视频时长（网络源可能拒绝访问）；预览图只覆盖了开头，无法对应任何正常长度的视频"
+                ),
+                frames=metadata.frame_count,
+                expected_frames=None,
+            )
         return None
     covered_s = metadata.frame_count * interval_s
+    if runtime_s < MIN_AUDIT_DURATION_S:
+        # A *network* probe that reports only a few seconds is the cloud share serving just the opening, not a real
+        # short film; such a bogus "runtime" must never bless a preview that also covers only a handful of intervals.
+        # A genuinely short local clip is different: its runtime is trustworthy, so it is skipped as before.
+        if is_network_input(media_path) and covered_s < MIN_PLAUSIBLE_COVERAGE_S:
+            return PreviewProblem(
+                media_path=media_path,
+                preview_path=preview_path,
+                reason=(
+                    f"只有 {metadata.frame_count} 张缩略图（覆盖约 {covered_s / 60:.0f} 分钟），"
+                    f"探测到的时长也只有 {runtime_s / 60:.0f} 分钟（网络源很可能只返回了开头）；"
+                    f"预览图和时长都不完整，无法对应正常视频"
+                ),
+                frames=metadata.frame_count,
+                expected_frames=expected,
+            )
+        return None
     shortfall_s = runtime_s - covered_s
     share = metadata.frame_count / expected
     if share > MAX_HEALTHY_FRAME_SHARE:

@@ -515,8 +515,10 @@
         }
         for (const [key, list] of idleByMemberRaw) {
             const ordered = list.slice().sort((a, b) => (a.worker_id || 0) - (b.worker_id || 0));
-            // slot_number is the server's own 1..N within the member; worker_id is only the fallback for an older API.
-            idleByMember.set(key, ordered.map((worker, index) => Number.isFinite(worker.slot_number) ? worker.slot_number : index + 1));
+            // Numbered 1..N inside this member, always from 1. Some older API paths have no slot_number and their
+            // worker_id is a pool-wide counter that keeps climbing after a group is recreated, so neither can be shown
+            // directly; their order is still stable, which is all this label needs.
+            idleByMember.set(key, ordered.map((_worker, index) => index + 1));
         }
         renderIdleRows();
         for (const worker of workers || []) {
