@@ -842,11 +842,31 @@
         const nodesNow = capacity.nodes_current || {};
         const nodesPeak = capacity.nodes_peak || {};
         const onNodes = (nodesPeak.cpu || 0) + (nodesPeak.gpu || 0) > 0;
-        const nodePart = (counts) => onNodes ? ` here, ${counts.gpu || 0} GPU + ${counts.cpu || 0} CPU on nodes` : '';
+        // The tail is a phrase of its own inside the sentence, so it is translated as one (the catalogue knows it),
+        // rather than left as the only English words in an otherwise Chinese line.
+        const nodePart = (counts) => {
+            if (!onNodes) return '';
+            const text = ` here, ${counts.gpu || 0} GPU + ${counts.cpu || 0} CPU on nodes`;
+            return window.mpgTranslateText ? window.mpgTranslateText(text) : text;
+        };
         // One sentence, with the timezone in it as text rather than a separate node: the catalogue translates a whole
         // text node, so appending the label after a full stop left the sentence half translated.
-        document.getElementById('workerGroupCapacity').textContent = capacity.current && capacity.peak ? `${dirty ? 'Saved schedule' : 'Scheduled'} now: CPU ${capacity.current.cpu} · GPU ${capacity.current.gpu}${nodePart(nodesNow)}. Weekly peak: CPU ${capacity.peak.cpu} · GPU ${capacity.peak.gpu}${nodePart(nodesPeak)}. ${timezoneLabel()}` : '';
-        window.mpgTranslate?.(document.getElementById('workerGroupCapacity'));
+        // Built from whole sentences, each with its timezone in it as text: the catalogue translates a text node as a
+        // whole, so a variable standing for the zone (Asia/Shanghai, UTC, ...) has to be part of the sentence it goes
+        // with, and the sentence is a fixed one the catalogue knows.
+        const capacityNode = document.getElementById('workerGroupCapacity');
+        if (capacityNode) {
+            if (capacity.current && capacity.peak) {
+                const lead = dirty ? 'Saved schedule now: ' : 'Scheduled now: ';
+                capacityNode.textContent = lead
+                    + `CPU ${capacity.current.cpu} · GPU ${capacity.current.gpu}${nodePart(nodesNow)}. `
+                    + `Weekly peak: CPU ${capacity.peak.cpu} · GPU ${capacity.peak.gpu}${nodePart(nodesPeak)}. `
+                    + `${timezoneLabel()}.`;
+                window.mpgTranslate?.(capacityNode);
+            } else {
+                capacityNode.textContent = '';
+            }
+        }
         renderRows(document.getElementById('workerGroupRows'));
         renderWeekOverview(draft || snapshot.groups);
         paintEditorPreview();

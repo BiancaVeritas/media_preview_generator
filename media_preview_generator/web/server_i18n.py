@@ -65,7 +65,9 @@ def catalogue(lang: str) -> tuple[dict[str, str], tuple[tuple[re.Pattern[str], s
         cursor = 0
         for match in _SLOT_RE.finditer(source):
             pieces.append(re.escape(source[cursor : match.start()]))
-            pieces.append(r"(.+?)")
+            # ``.*?``, not ``.+?``: a slot can legitimately be empty (the "on nodes" part of the capacity line), and an
+            # empty slot made the whole sentence fall through to English.
+            pieces.append(r"(.*?)")
             slots = max(slots, int(match.group(1)) + 1)
             cursor = match.end()
         pieces.append(re.escape(source[cursor:]))

@@ -4151,15 +4151,20 @@ async function reprocessJob(jobId) {
 }
 
 async function clearJobsByStatus() {
-    const checkboxes = document.querySelectorAll('.clear-status-cb:checked');
-    const statuses = Array.from(checkboxes).map(cb => cb.value);
+    const checkboxes = Array.from(document.querySelectorAll('.clear-status-cb:checked'));
+    const statuses = checkboxes.map(cb => cb.value);
 
     if (statuses.length === 0) {
         showToast('Warning', 'Select at least one status to clear', 'warning');
         return;
     }
 
-    const labels = statuses.join(', ');
+    // The words the user sees on those rows ("已完成"), not the API's status ids: joining the ids put
+    // "completed, failed, cancelled" in the middle of an otherwise Chinese sentence.
+    const labels = checkboxes
+        .map(cb => cb.closest('.clear-row')?.querySelector('.pill')?.textContent?.trim())
+        .filter(Boolean)
+        .join('、');
     if (!await appConfirm(`Clear all ${labels} jobs from the history?`, { title: 'Clear jobs', confirmText: 'Clear' })) return;
 
     try {
@@ -4907,8 +4912,20 @@ window.checkConfigHealth = checkConfigHealth;
  * and the class come from `_applyInfoIconAffordance`, so an ⓘ can't say "click" when a click does nothing.
  */
 const INFO_ICON_MORE_HINT = 'Click for more.';
+// The same suffix in the page's language, and the full stop that goes with it: a translated hint already ends in "。",
+// so adding the English "." after it read as a stray dot ("之后。. Click for more.").
+const INFO_ICON_MORE_HINT_ZH = '点击了解更多。';
+const INFO_ICON_STOP_RE = /[.!?。！？]$/;
+
+function _infoIconLocale() {
+    return (document.documentElement.getAttribute('lang') || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function _infoIconMoreSuffix() {
+    return _infoIconLocale() === 'zh' ? INFO_ICON_MORE_HINT_ZH : INFO_ICON_MORE_HINT;
+}
 // Hand-written variants of the hint from before the helper owned it; stripped so it is never doubled.
-const INFO_ICON_HINT_SUFFIX_RE = /\s*(?:[—–-]\s*)?click for (?:more|details)\.?\s*$/i;
+const INFO_ICON_HINT_SUFFIX_RE = /\s*(?:[—–-]\s*)?(?:click for (?:more|details)|点击了解更多)[.。！？!?]?\s*$/i;
 
 function _infoIconDetailHtml(el) {
     if (el._explanationHtml) return el._explanationHtml;
@@ -4931,12 +4948,16 @@ function _applyInfoIconAffordance(el) {
     el.classList.toggle('info-icon-more', hasDetail);
     let hint = _infoIconHint(el);
     if (hasDetail) {
-        if (hint && !/[.!?]$/.test(hint)) hint += '.';
-        hint = hint ? `${hint} ${INFO_ICON_MORE_HINT}` : INFO_ICON_MORE_HINT;
+        const zh = _infoIconLocale() === 'zh';
+        const stop = zh ? '。' : '.';
+        if (hint && !INFO_ICON_STOP_RE.test(hint)) hint += stop;
+        // Chinese sets no space after a full stop before the next phrase; English needs one.
+        const joiner = zh ? '' : ' ';
+        hint = hint ? `${hint}${joiner}${_infoIconMoreSuffix()}` : _infoIconMoreSuffix();
     }
     const attr = el.hasAttribute('data-bs-original-title') ? 'data-bs-original-title' : 'title';
     if ((el.getAttribute(attr) || '') !== hint) el.setAttribute(attr, hint);
-    if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', hint || 'More information');
+    if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', hint || (_infoIconLocale() === 'zh' ? '更多信息' : 'More information'));
 }
 
 // A title alone is not reliably announced on a focusable control, so icon-only buttons get it as their name.
