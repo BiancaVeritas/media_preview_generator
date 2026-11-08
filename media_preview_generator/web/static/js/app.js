@@ -3149,8 +3149,8 @@ function updateWorkerStatuses(workers, options = {}) {
     }
 
     // Number each worker 1..N inside its own group member. ``worker_id`` is a pool-wide counter that only grows, so
-    // showing it directly made a two-slot CPU group read "#2 #3" after any earlier slots had been created. Sorting by
-    // worker_id keeps a slot's number stable while it lives; a group deleted and re-added starts at #1 again.
+    // showing it directly made a two-slot CPU group read "#2 #3" after any earlier slots had been created. The server
+    // stamps ``slot_number`` (the same number its job log prints); fall back to this ordering only without one.
     const memberSlots = new Map();
     const byMember = new Map();
     for (const w of workers) {
@@ -3159,7 +3159,9 @@ function updateWorkerStatuses(workers, options = {}) {
     }
     for (const list of byMember.values()) {
         list.sort((a, b) => (a.worker_id || 0) - (b.worker_id || 0))
-            .forEach((w, index) => memberSlots.set(w.worker_id, index + 1));
+            .forEach((w, index) => {
+                memberSlots.set(w.worker_id, Number(w.slot_number) || index + 1);
+            });
     }
 
     let fallback = container.querySelector('[data-worker-fallback]');

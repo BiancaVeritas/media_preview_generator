@@ -515,10 +515,9 @@
         }
         for (const [key, list] of idleByMemberRaw) {
             const ordered = list.slice().sort((a, b) => (a.worker_id || 0) - (b.worker_id || 0));
-            // Numbered 1..N inside this member, always from 1. Some older API paths have no slot_number and their
-            // worker_id is a pool-wide counter that keeps climbing after a group is recreated, so neither can be shown
-            // directly; their order is still stable, which is all this label needs.
-            idleByMember.set(key, ordered.map((_worker, index) => index + 1));
+            // Numbered 1..N inside this member. Prefer the server's slot_number — the same number the job log prints —
+            // and fall back to this ordering, since worker_id is a pool-wide counter that keeps climbing.
+            idleByMember.set(key, ordered.map((worker, index) => Number(worker.slot_number) || index + 1));
         }
         renderIdleRows();
         for (const worker of workers || []) {

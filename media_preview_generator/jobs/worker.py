@@ -232,6 +232,10 @@ class Worker:
         """
         self.worker_id = worker_id
         self.worker_type = worker_type
+        # This slot's number inside its group member (1..count), refreshed by the pool whenever the group is
+        # reconciled. ``worker_id`` is a pool-wide counter that only grows, so a group deleted and re-added showed
+        # "CPU 工作进程 · 3/4" in the job log while the dashboard already numbered the same slots #1/#2.
+        self.slot_number: int = worker_id + 1
         self.gpu = gpu
         self.gpu_device = gpu_device
         self.gpu_index = gpu_index
@@ -1275,9 +1279,10 @@ def _group_display_name(group_name: str, worker: Worker) -> str:
     """A group worker's name in the job log: ``Off-hours · 2`` here, ``Lab nodes · lab-gpu/GPU0`` on a node.
 
     A node worker is named by its node and device, the prefix its own lines carry; this app's running number would
-    match nothing the user sees for it.
+    match nothing the user sees for it. The local number is the slot's place in its group (``slot_number``), the same
+    number the dashboard shows — not ``worker_id``, which counts every slot the pool ever made.
     """
-    return f"{group_name} · {worker.node_device or worker.worker_id + 1}"
+    return f"{group_name} · {worker.node_device or worker.slot_number}"
 
 
 class WorkerPool:
@@ -1431,6 +1436,9 @@ class WorkerPool:
                             worker.gpu_name = hardware.gpu.get("name") or policy["device"]
                     worker.group_name = policy["name"]
                     worker.allowed_job_types = frozenset(policy["job_types"])
+                    # 1..N inside this member, the number the dashboard shows and the job log uses. The owned list is
+                    # sorted (retiring last, busy first) so a live slot keeps its number while it exists.
+                    worker.slot_number = index + 1
                     worker.display_name = _group_display_name(policy["name"], worker)
                     if index < desired:
                         worker._pending_removal = False
@@ -1460,6 +1468,8 @@ class WorkerPool:
                     worker.group_name = policy["name"]
                     worker.group_resource = resource
                     worker.allowed_job_types = frozenset(policy["job_types"])
+                    # Continue the member's own numbering (1..count), not the pool-wide worker_id.
+                    worker.slot_number = sum(1 for w in self.workers if w.policy_id == pid) + 1
                     worker.display_name = _group_display_name(policy["name"], worker)
                     self.workers.append(worker)
                     added += 1

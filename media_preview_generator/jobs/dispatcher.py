@@ -2187,13 +2187,16 @@ class JobDispatcher:
             type_counters[counter_key] = type_counters.get(counter_key, 0) + 1
             worker_type_index[w.worker_id] = type_counters[counter_key]
         # The same number per group member, which is what the dashboard's idle chips show: worker_id counts every slot
-        # the pool ever made, so a group deleted and added again would start at "#7 #8" there too.
+        # the pool ever made, so a group deleted and added again would start at "#7 #8" there too. The pool already
+        # stamps each slot with its member-local number (``Worker.slot_number``, the number the job log prints); fall
+        # back to this ordering only for a worker that has none.
         member_counters: dict[tuple[str, str], int] = {}
         worker_slot_index: dict[int, int] = {}
         for w in sorted(all_workers, key=lambda worker: worker.worker_id):
             member_key = (str(w.group_id or ""), str(w.member_id or ""))
             member_counters[member_key] = member_counters.get(member_key, 0) + 1
-            worker_slot_index[w.worker_id] = member_counters[member_key]
+            stamped = getattr(w, "slot_number", None)
+            worker_slot_index[w.worker_id] = stamped if isinstance(stamped, int) and stamped > 0 else member_counters[member_key]
 
         statuses = []
         for worker in all_workers:
