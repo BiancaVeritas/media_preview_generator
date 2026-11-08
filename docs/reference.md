@@ -349,6 +349,7 @@ These are not migrated to settings.json and remain in effect:
 | `CONFIG_BACKUP_MAX_AGE_DAYS` | `0` | Drop snapshots older than this many days (`0` = off). Used only until you set it in **Settings → Backups**. 0–365. |
 | `THUMBNAIL_SCALER` | unset (FFmpeg defaults) | Downscale algorithm for preview thumbnails: `bilinear`, `bicubic` or `lanczos`. Unset keeps the CPU path at bicubic and NVIDIA at bilinear; `lanczos` is sharper at 320px, `bicubic` makes an NVIDIA worker match the CPU path. Intel/AMD VAAPI always uses its own high-quality scaler. Changing it affects newly generated previews only. |
 | `OUTPUT_JOURNAL` | `on` | Write and read the small `.meta` sidecars beside Emby BIFs and Jellyfin trickplay output (the source fingerprint that lets a repeat job skip the decode and notice a replaced file). Set to `off` to stop creating them; an existing output then counts as fresh, so a file replaced in place keeps its old previews until regenerated. |
+| `NETWORK_RETRY_DELAYS` | `15,60,180` | Seconds to wait before each re-open of a `.strm`'s URL when the stream stops answering (a cloud drive throttling the link). The waits must span the share's throttling window — a few seconds all land inside it and can never succeed, while asking again at once is what trips the rate limit. A failed file costs up to ~4 minutes of one worker. `0,2,8` restores the previous, shorter pacing; a malformed value falls back to the default. |
 
 ### Developer / harness-only
 

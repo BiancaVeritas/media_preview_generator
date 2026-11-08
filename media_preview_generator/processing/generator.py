@@ -1512,10 +1512,45 @@ def _expected_frame_count(media_info, interval: float) -> float | None:
     return duration_s / interval
 
 
-#: How long to wait before each re-open of a stream that stopped answering (a .strm file's URL). The first is immediate:
-#: a dropped connection is often already over, and a re-request costs one header read. The longer waits are for a cloud
-#: drive that is throttling the link for a moment, where asking again at once gets the same short answer.
-NETWORK_INPUT_RETRY_DELAYS_S: tuple[int, ...] = (0, 2, 8)
+#: How long to wait before each re-open of a stream that stopped answering (a .strm file's URL).
+#:
+#: A cloud drive throttles the link for *minutes*, not seconds: the original 0/2/8 s all landed inside a single
+#: throttling window, so none of them could ever succeed. Worse, retrying at once is exactly what trips a share's rate
+#: limiting, so the retries made the problem worse while spending three more requests on it. These waits are long
+#: enough to cross a typical window (and to look like a patient client rather than a flood), which is what actually
+#: recovers the file. ``NETWORK_RETRY_DELAYS`` overrides them, comma separated; ``0,2,8`` restores the old behaviour.
+#:
+#: A failed file now costs up to ~4 minutes of one worker instead of ~12 s. That is the intended trade: the run was
+#: going to fail anyway, and this turns "always fails while the share is busy" into "usually succeeds".
+NETWORK_INPUT_RETRY_DELAYS_S: tuple[int, ...] = (15, 60, 180)
+#: ``NETWORK_RETRY_DELAYS``, parsed once: seconds between re-opens of a stalled network source.
+_RETRY_DELAYS_ENV = "NETWORK_RETRY_DELAYS"
+
+
+def _network_retry_delays() -> tuple[int, ...]:
+    """The waits before each re-open of a stalled network stream (``NETWORK_INPUT_RETRY_DELAYS_S`` by default).
+
+    A malformed or empty override falls back to the default rather than failing a job: this only tunes retry pacing,
+    and a bad value in a compose file must never stop previews from being generated.
+    """
+    raw = os.environ.get(_RETRY_DELAYS_ENV, "").strip()
+    if not raw:
+        return NETWORK_INPUT_RETRY_DELAYS_S
+    try:
+        parsed = tuple(int(part.strip()) for part in raw.split(",") if part.strip())
+    except ValueError:
+        logger.warning(
+            "{}={!r} is not a comma-separated list of seconds; using {}", _RETRY_DELAYS_ENV, raw,
+            NETWORK_INPUT_RETRY_DELAYS_S,
+        )
+        return NETWORK_INPUT_RETRY_DELAYS_S
+    if not parsed or any(wait < 0 for wait in parsed):
+        logger.warning(
+            "{}={!r} must be one or more non-negative seconds; using {}", _RETRY_DELAYS_ENV, raw,
+            NETWORK_INPUT_RETRY_DELAYS_S,
+        )
+        return NETWORK_INPUT_RETRY_DELAYS_S
+    return parsed
 
 #: The end-of-file probe only picks which warning to log, so it gets far less
 #: time than the keyframe probe: a stalled read falls back to the generic
@@ -2681,15 +2716,16 @@ def generate_images(
         return is_network_input(video_file) and _read_died_early(count)
 
     if not partial_discarded and _network_read_died(image_count):
-        for attempt, wait_s in enumerate(NETWORK_INPUT_RETRY_DELAYS_S, start=1):
+        retry_delays = _network_retry_delays()
+        for attempt, wait_s in enumerate(retry_delays, start=1):
             if cancel_check and cancel_check():
                 raise CancellationError(f"Processing cancelled for {video_file}")
             logger.warning(
                 "The stream for {} stopped answering while it was being read ({} of {}). "
-                "Reopening it {} — a cloud drive or HTTP share often serves it whole the second time.",
+                "Reopening it {} — a cloud drive or HTTP share often serves it whole after its throttling window.",
                 os.path.basename(video_file),
                 attempt,
-                len(NETWORK_INPUT_RETRY_DELAYS_S),
+                len(retry_delays),
                 "now" if wait_s == 0 else f"in {wait_s}s",
             )
             if wait_s:
