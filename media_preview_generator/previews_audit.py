@@ -61,13 +61,10 @@ SHORTFALL_TOLERANCE_S = 300
 #: filling the BIF with the same picture and growing it past a gigabyte for a film. Nothing a healthy run writes comes
 #: near this: the frames sit at one per interval, so 100% is the ceiling and a tail lost to a decoder only lowers it.
 MAX_HEALTHY_FRAME_SHARE = 1.5
-#: Files this short have so few thumbnails that the share can't tell a good preview from a bad one, so they are skipped.
+#: A runtime shorter than this from a NETWORK probe is treated as a failed read and retried: a cloud share that serves
+#: just the opening reports a few seconds. Used only for deciding whether to probe again — never for judging a preview.
+#: Real clips shorter than a minute are legitimate and are judged by their frames like any other file.
 MIN_AUDIT_DURATION_S = 60
-#: With no usable runtime, a preview covering less than this cannot be the preview of any real video. At a 10 s
-#: interval that is ~15 minutes (90 frames): well below a feature film, an episode, or a normal clip, but far above
-#: the 1–7 frames a run that died after the opening leaves behind. Guards the case where a .strm HTTP source returns
-#: 403 (no runtime at all) or serves just the header (ffprobe reports a few seconds).
-MIN_PLAUSIBLE_COVERAGE_S = 900
 #: How much longer the audio may run past the video before the tail is treated as audio-only (an ED/outro playing over
 #: a still or a fade). Under this, video and audio end together as usual, so a short preview really is short.
 #:
@@ -296,40 +293,26 @@ def check_preview(
         runtime_s = _runtime_seconds(media_path)
     expected = _expected_frames(runtime_s, interval_s)
     if expected is None or runtime_s is None:
-        # No trustworthy runtime from either the server or ffprobe. Don't silently call a one-frame preview healthy:
-        # a preview that covers only a handful of intervals cannot be the preview of any full-length video. This is the
-        # case a .strm link returning 403 lands in, and exactly the broken previews this audit was written to find.
+        # No runtime from the record or ffprobe. Rather than guessing from the frame count (a real 7-second clip and a
+        # truncated read of a 2-hour film both have one frame), measure the video stream itself. A short clip's few
+        # frames then match its short video; a long video's do not. Only if the video can't be read at all do we fall
+        # back to reporting a preview that covers just the opening.
+        video_end = _probe_video_end(media_path)
+        video_expected = _expected_frames(video_end, interval_s) if video_end is not None else None
+        if video_expected is not None and _covers_its_run(metadata.frame_count, video_expected):
+            return None
         covered_s = metadata.frame_count * interval_s
-        if covered_s < MIN_PLAUSIBLE_COVERAGE_S:
-            return PreviewProblem(
-                media_path=media_path,
-                preview_path=preview_path,
-                reason=(
-                    f"只有 {metadata.frame_count} 张缩略图（覆盖约 {covered_s / 60:.0f} 分钟），"
-                    f"且读不到视频时长（网络源可能拒绝访问）；预览图只覆盖了开头，无法对应任何正常长度的视频"
-                ),
-                frames=metadata.frame_count,
-                expected_frames=None,
-            )
-        return None
+        return PreviewProblem(
+            media_path=media_path,
+            preview_path=preview_path,
+            reason=(
+                f"只有 {metadata.frame_count} 张缩略图（覆盖约 {covered_s / 60:.0f} 分钟），"
+                f"且读不到视频时长（网络源可能拒绝访问）；预览图只覆盖了开头，无法对应正常长度的视频"
+            ),
+            frames=metadata.frame_count,
+            expected_frames=None,
+        )
     covered_s = metadata.frame_count * interval_s
-    if runtime_s < MIN_AUDIT_DURATION_S:
-        # A *network* probe that reports only a few seconds is the cloud share serving just the opening, not a real
-        # short film; such a bogus "runtime" must never bless a preview that also covers only a handful of intervals.
-        # A genuinely short local clip is different: its runtime is trustworthy, so it is skipped as before.
-        if is_network_input(media_path) and covered_s < MIN_PLAUSIBLE_COVERAGE_S:
-            return PreviewProblem(
-                media_path=media_path,
-                preview_path=preview_path,
-                reason=(
-                    f"只有 {metadata.frame_count} 张缩略图（覆盖约 {covered_s / 60:.0f} 分钟），"
-                    f"探测到的时长也只有 {runtime_s / 60:.0f} 分钟（网络源很可能只返回了开头）；"
-                    f"预览图和时长都不完整，无法对应正常视频"
-                ),
-                frames=metadata.frame_count,
-                expected_frames=expected,
-            )
-        return None
     shortfall_s = runtime_s - covered_s
     share = metadata.frame_count / expected
     if share > MAX_HEALTHY_FRAME_SHARE:

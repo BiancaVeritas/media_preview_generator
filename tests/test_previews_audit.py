@@ -132,13 +132,21 @@ def test_a_corrupt_preview_is_reported(tmp_path, monkeypatch, media):
     assert problem is not None and problem.frames == 0
 
 
-def test_a_short_clip_is_skipped(tmp_path, monkeypatch, media):
-    """Under a minute the frame count can't tell a good preview from a bad one."""
+def test_a_short_clip_is_judged_by_its_frames_like_any_other(tmp_path, monkeypatch, media):
+    """A 30s clip asks for 4 frames: 4 passes, 1 is genuinely short, and the old 'skip anything under a minute' rule
+    would have hidden the latter.
+
+    Real 3D loop clips of 7-50s with 1-5 frames are legitimate; the runtime sources (record, ffprobe, video stream)
+    already guarantee the duration, so no length-based exemption is needed — or wanted.
+    """
     source, _ = media("clip.mkv", 30)
-    preview = _write_bif(tmp_path / "clip-320-10.bif", 1)
     _stub_runtime(monkeypatch, 30)
 
-    assert check_preview(str(source), str(preview)) is None
+    complete = _write_bif(tmp_path / "complete-320-10.bif", 4)
+    assert check_preview(str(source), str(complete)) is None
+
+    short = _write_bif(tmp_path / "short-320-10.bif", 1)
+    assert check_preview(str(source), str(short)) is not None
 
 
 def test_an_unknown_runtime_no_longer_hides_a_truncated_preview(tmp_path, monkeypatch, media):
