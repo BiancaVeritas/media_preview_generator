@@ -70,7 +70,12 @@ MIN_AUDIT_DURATION_S = 60
 MIN_PLAUSIBLE_COVERAGE_S = 900
 #: How much longer the audio may run past the video before the tail is treated as audio-only (an ED/outro playing over
 #: a still or a fade). Under this, video and audio end together as usual, so a short preview really is short.
-AUDIO_ONLY_TAIL_MIN_S = 60
+#:
+#: Measured on real files: an intact file's two streams end within 0.1 s of each other, and so do both streams of a
+#: truncated one (an interrupted copy cuts them together) — while the audio-only tails in a real library ran 43 s, 109 s,
+#: 218 s and 358 s past the picture. Anything from ~10 s upward separates the two populations, so 30 s leaves a wide
+#: margin on both sides rather than sitting near either.
+AUDIO_ONLY_TAIL_MIN_S = 30
 
 #: How long ffprobe may take to read each stream's last packet when deciding why a preview is short.
 STREAM_END_PROBE_TIMEOUT_S = 120

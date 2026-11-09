@@ -227,3 +227,27 @@ def test_a_film_still_allows_five_percent(tmp_path, monkeypatch, media):
     )
 
     assert check_preview(source, str(preview), runtime_s=2748.79) is None
+
+
+def test_the_tail_threshold_sits_between_the_two_real_populations():
+    """Measured: an intact (or truncated) file's streams end within 0.1s; real audio-only tails ran 43s+."""
+    from media_preview_generator.previews_audit import AUDIO_ONLY_TAIL_MIN_S, _StreamEnds
+
+    assert AUDIO_ONLY_TAIL_MIN_S >= 10, "must not treat ordinary stream rounding as an audio-only tail"
+    assert AUDIO_ONLY_TAIL_MIN_S <= 43, "must catch a 43s outro, the shortest seen in a real library"
+
+    # A whole file, and a truncated one: both streams end together.
+    assert not _StreamEnds(video_end=1612.3, audio_end=1612.4).is_audio_only_tail
+    assert not _StreamEnds(video_end=300.1, audio_end=300.0).is_audio_only_tail
+    # Real tails from a library.
+    assert _StreamEnds(video_end=941.2, audio_end=984.1).is_audio_only_tail
+    assert _StreamEnds(video_end=928.1, audio_end=1037.4).is_audio_only_tail
+
+
+def test_a_short_audio_tail_is_enough_to_judge_by_the_picture(tmp_path, monkeypatch, media):
+    """GLOD-0158: a 43s outro, 94 frames for 15.7 min of picture, judged complete."""
+    source = media()
+    preview = _write_bif(tmp_path / "film-320-10.bif", 94)
+    _stub_stream_ends(monkeypatch, video_end=941.2, audio_end=984.1)
+
+    assert check_preview(source, str(preview), runtime_s=984.15) is None
