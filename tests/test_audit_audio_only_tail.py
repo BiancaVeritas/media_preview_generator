@@ -42,14 +42,15 @@ def media(tmp_path):
 
 
 def _stub_stream_ends(monkeypatch, video_end, audio_end):
-    """Stub the single combined probe: it returns the video's end when the tail is audio-only, else None."""
+    """Stub the single combined probe that reports where each stream really stops."""
+    from media_preview_generator.previews_audit import _StreamEnds
 
     def fake(_path):
-        if video_end is None or audio_end is None:
+        if video_end is None:
             return None
-        return video_end if audio_end - video_end > 60 else None
+        return _StreamEnds(video_end=video_end, audio_end=audio_end)
 
-    monkeypatch.setattr("media_preview_generator.previews_audit._video_ends_before_audio", fake)
+    monkeypatch.setattr("media_preview_generator.previews_audit._probe_stream_ends", fake)
 
 
 # --- the real reported file: container 1037s, video 928s, 93 frames -------------------------------
@@ -75,15 +76,34 @@ def test_a_genuinely_short_preview_is_still_reported(tmp_path, monkeypatch, medi
     assert problem.frames == 93
 
 
-def test_a_truncated_file_whose_audio_also_stops_is_reported(tmp_path, monkeypatch, media):
-    """A cut-off download has both streams ending early: that is a broken file, not an outro."""
+def test_a_file_that_really_stops_short_is_reported(tmp_path, monkeypatch, media):
+    """The preview covers only part of what the file itself holds: that is a failed run, not a stale record."""
     source = media()
     preview = _write_bif(tmp_path / "film-320-10.bif", 93)
-    _stub_stream_ends(monkeypatch, video_end=930.0, audio_end=935.0)
+    # The file really is 30 min long (both streams reach 1800s); its preview stops at 16 min.
+    _stub_stream_ends(monkeypatch, video_end=1798.0, audio_end=1800.0)
 
     problem = check_preview(source, str(preview), runtime_s=1800.0)
 
     assert problem is not None
+
+
+def test_a_stale_recorded_runtime_is_reported_healthy(tmp_path, monkeypatch, media):
+    """The record says 53 min, the file really holds 46, and the preview covers all 46: nothing to rebuild."""
+    source = media()
+    preview = _write_bif(tmp_path / "film-320-10.bif", 275)
+    _stub_stream_ends(monkeypatch, video_end=2748.7, audio_end=2748.8)
+
+    assert check_preview(source, str(preview), runtime_s=3200.4) is None
+
+
+def test_a_preview_short_by_both_measures_is_still_reported(tmp_path, monkeypatch, media):
+    """A shorter file is no excuse for a preview that stops well before even the real content."""
+    source = media()
+    preview = _write_bif(tmp_path / "film-320-10.bif", 100)
+    _stub_stream_ends(monkeypatch, video_end=2748.7, audio_end=2748.8)
+
+    assert check_preview(source, str(preview), runtime_s=3200.4) is not None
 
 
 def test_a_tail_under_the_threshold_is_not_treated_as_audio_only(tmp_path, monkeypatch, media):

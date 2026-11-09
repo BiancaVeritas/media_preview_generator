@@ -39,7 +39,18 @@ RUNTIME_RETRY_DELAYS_S: tuple[int, ...] = (0, 2, 8)
 #: 100%, and anything a decoder dropped at the tail keeps it above 95%. Below that, the run stopped part-way — the
 #: failure this audit exists to find. At a 10 s interval it allows a preview to end 2 minutes early on a 40-minute file,
 #: 6 on a two-hour one, and 9 on a three-hour one: already far past anything a good run leaves behind.
+#:
+#: The share on its own is unusable for a short file, though: a 2-minute clip asks for 9.6 frames, so one frame of
+#: rounding is already 90% and a perfectly good preview fails. :data:`MIN_FRAME_SLACK` covers that end of the range.
 MIN_HEALTHY_FRAME_SHARE = 0.95
+#: Frames a preview may fall short of its runtime no matter how short the file is.
+#:
+#: ``fps=1/10`` emits at 0, 10, 20 … and whether the last one lands before the end is a coin flip, so a complete run
+#: is routinely one frame below ``runtime / interval``. For a 2-minute file that one frame is 10% — twice the 5% share —
+#: while for a feature film it is noise the share already absorbs. Exactly ONE, not more: two frames missing is a
+#: second of content that the run failed to read, and on a short clip it is also the difference between "rounding" and
+#: "a tenth of the preview is gone".
+MIN_FRAME_SLACK = 1
 #: A preview that ends this many minutes before the runtime is also reported, whatever its share. A stated runtime can
 #: run past its video stream, and a preview's last frame sits up to one thumbnail interval early, so a couple of minutes
 #: is normal; a quarter of an hour is not. This catches a stop part-way on a long film that 95% alone would let through
@@ -137,28 +148,68 @@ def _expected_frames(runtime_s: float | None, interval_s: int) -> float | None:
     return runtime_s / interval_s
 
 
-def _video_ends_before_audio(media_path: str) -> float | None:
-    """The video's real end when the file's tail is audio-only; None when video and audio end together.
+def _covers_its_run(frames: int, expected: float | None) -> bool:
+    """Whether ``frames`` is what a complete run over ``expected`` frames looks like.
 
-    Plenty of releases end with an outro or ED playing over a fade to black, so the video stream stops minutes before
-    the container does. Judging such a file by the container's duration demands thumbnails for a stretch that has no
-    picture to make them from, so its preview can never satisfy the check and gets rebuilt on every run, forever.
+    Two rules, either of which passes:
 
-    ONE ffprobe run answers both questions: it lists every stream's packets with their stream index, so the video's
-    and the audio's last timestamps come from the same pass. That matters for a ``.strm`` cloud link, where every
-    extra call is another HTTP request against a share that may be throttling.
+    * within 5% of the expected count — the generator's own completeness rule, right for a film;
+    * within ``MIN_FRAME_SLACK`` frames of it — the same rule expressed absolutely, for a short file where one frame of
+      ``fps=1/10`` rounding is a tenth of the whole preview. A 2-minute clip asks for 9.6 frames and a good run writes
+      9 or 10; judging that by the share alone fails a perfect preview.
+
+    Args:
+        frames: Frames the preview holds.
+        expected: Frames a complete run would write, or None when the runtime is unknown.
 
     Returns:
-        The video's end in seconds when the audio runs on well past it (the file is fine; measure it by its video), or
-        None when they end together (the runtime is the truth) or either end can't be read.
+        True when the count is complete enough to publish.
+    """
+    if expected is None or expected <= 0:
+        return True
+    if frames >= expected - MIN_FRAME_SLACK:
+        return True
+    return frames / expected >= MIN_HEALTHY_FRAME_SHARE
+
+
+@dataclass(frozen=True)
+class _StreamEnds:
+    """Where a file's streams really stop, from one ffprobe pass.
+
+    Attributes:
+        video_end: Seconds to the last video packet.
+        audio_end: Seconds to the last audio packet, or None when the file has no audio.
+    """
+
+    video_end: float
+    audio_end: float | None
+
+    @property
+    def is_audio_only_tail(self) -> bool:
+        """Whether the picture stops well before the sound (an ED over a fade to black)."""
+        return self.audio_end is not None and self.audio_end - self.video_end > AUDIO_ONLY_TAIL_MIN_S
+
+    @property
+    def content_end(self) -> float:
+        """The furthest point any stream reaches: the file's real length."""
+        return max(self.video_end, self.audio_end or 0.0)
+
+
+def _probe_stream_ends(media_path: str) -> _StreamEnds | None:
+    """Read where every stream really stops, in one ffprobe run; None when the file can't be read.
+
+    ONE run answers three questions the check may need — is the tail audio only, does the file really hold what its
+    runtime claims, and where does the picture end — because over a ``.strm`` cloud link every extra call is another
+    HTTP request against a share that may be throttling.
+
+    No ``-select_streams``: it takes a single specifier (``v:0,a:0`` is rejected as invalid), and asking for every
+    stream costs nothing here since the output is only packet timestamps.
     """
     try:
         source = media_input(media_path)
     except StrmError:
         # An unreachable .strm has nothing to measure; the caller falls back to reporting the preview as short.
         return None
-    # No -select_streams: it takes one specifier (``v:0,a:0`` is rejected), and asking for every stream costs nothing
-    # here because the output is only packet timestamps.
     cmd = [
         "ffprobe",
         "-v",
@@ -191,12 +242,27 @@ def _video_ends_before_audio(media_path: str) -> float | None:
             ends[index] = pts
     if not ends:
         return None
-    # Stream indices, not positions: pick the video (lowest index that isn't the audio) and the audio by its codec.
+    # Stream indices, not positions: the video is the lowest index, the audio the furthest of the rest.
     video_end = ends.get("0")
-    audio_end = max((pts for index, pts in ends.items() if index != "0"), default=None)
-    if video_end is None or audio_end is None:
+    if video_end is None:
         return None
-    return video_end if audio_end - video_end > AUDIO_ONLY_TAIL_MIN_S else None
+    audio_end = max((pts for index, pts in ends.items() if index != "0"), default=None)
+    return _StreamEnds(video_end=video_end, audio_end=audio_end)
+
+
+def _video_ends_before_audio(media_path: str) -> float | None:
+    """The video's real end when the file's tail is audio-only; None when video and audio end together.
+
+    Plenty of releases end with an outro or ED playing over a fade to black, so the video stream stops minutes before
+    the container does. Judging such a file by the container's duration demands thumbnails for a stretch that has no
+    picture to make them from, so its preview can never satisfy the check and gets rebuilt on every run, forever.
+
+    Returns:
+        The video's end in seconds when the audio runs on well past it (the file is fine; measure it by its video), or
+        None when they end together (the runtime is the truth) or either end can't be read.
+    """
+    ends = _probe_stream_ends(media_path)
+    return ends.video_end if ends is not None and ends.is_audio_only_tail else None
 
 
 def _interval_from_name(preview: Path, default: int) -> int:
@@ -308,29 +374,48 @@ def check_preview(
             frames=metadata.frame_count,
             expected_frames=expected,
         )
-    if share >= MIN_HEALTHY_FRAME_SHARE and shortfall_s <= SHORTFALL_TOLERANCE_S:
+    if _covers_its_run(metadata.frame_count, expected) and shortfall_s <= SHORTFALL_TOLERANCE_S:
         return None
-    # Short by the runtime, but is the file? An outro or ED over a fade stops the video stream minutes before the
-    # container ends; demanding thumbnails for that stretch asks for pictures that don't exist, so the preview can
-    # never satisfy the check and is rebuilt on every run. Only a file that already looks short pays for this probe:
-    # it reads each stream's last packet (a seek and a small read), never the whole file.
-    video_only_end = _video_ends_before_audio(media_path)
-    if video_only_end is not None:
-        video_expected = _expected_frames(video_only_end, interval_s)
-        video_covered = metadata.frame_count * interval_s
+    # Short by the runtime — but the runtime is second-hand (the media server's record, or a StrmAssistant json
+    # written when the file was first added), so before calling this a failed run, measure what the file really holds.
+    # One ffprobe pass answers all of it: where the picture stops, where the sound stops, and therefore whether the
+    # runtime we were given still describes this file. Only a preview that already looks short pays for it.
+    ends = _probe_stream_ends(media_path)
+    if ends is not None:
+        # 1. An outro/ED over a fade: the picture stops minutes before the container does, so thumbnails for the tail
+        #    would be pictures that don't exist. Judge the preview by the picture instead.
+        if ends.is_audio_only_tail:
+            video_expected = _expected_frames(ends.video_end, interval_s)
+            if (
+                _covers_its_run(metadata.frame_count, video_expected)
+                and ends.video_end - covered_s <= SHORTFALL_TOLERANCE_S
+            ):
+                logger.info(
+                    "Preview check: {} covers the picture ({} of {} frames for {:.0f} min of video); the file's last "
+                    "{:.0f} min is audio only, so its preview is complete",
+                    Path(media_path).name,
+                    metadata.frame_count,
+                    f"{video_expected:.0f}",
+                    ends.video_end / 60,
+                    (runtime_s - ends.video_end) / 60,
+                )
+                return None
+        # 2. A stale runtime: the file was replaced or re-encoded after the record was written, so it is shorter than
+        #    it claims. Judging by the old figure asks for frames the file cannot produce, rebuilding it every run.
+        real_expected = _expected_frames(ends.content_end, interval_s)
         if (
-            video_expected is not None
-            and metadata.frame_count / video_expected >= MIN_HEALTHY_FRAME_SHARE
-            and video_only_end - video_covered <= SHORTFALL_TOLERANCE_S
+            ends.content_end < runtime_s - SHORTFALL_TOLERANCE_S
+            and _covers_its_run(metadata.frame_count, real_expected)
+            and ends.content_end - covered_s <= SHORTFALL_TOLERANCE_S
         ):
             logger.info(
-                "Preview check: {} covers the picture ({} of {} frames for {:.0f} min of video); the file's last "
-                "{:.0f} min is audio only, so its preview is complete",
+                "Preview check: {} covers the whole file ({} of {} frames for its real {:.0f} min); the recorded "
+                "runtime of {:.0f} min is out of date, so its preview is complete",
                 Path(media_path).name,
                 metadata.frame_count,
-                f"{video_expected:.0f}",
-                video_only_end / 60,
-                (runtime_s - video_only_end) / 60,
+                f"{real_expected:.0f}",
+                ends.content_end / 60,
+                runtime_s / 60,
             )
             return None
     return PreviewProblem(
