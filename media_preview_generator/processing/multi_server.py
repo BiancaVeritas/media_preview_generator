@@ -2245,7 +2245,12 @@ def _process_canonical_path_previews(
                 raise CancellationError("Cancelled while waiting for another run on the same file")
 
     try:
-        if generation_lock is not None and not regenerate:
+        # The preview check measured this file's preview and found it truncated: the frames the cache holds are the
+        # very ones that produced that preview, so reusing them would rebuild the same wrong file forever (the job
+        # logged "rebuilding", reused the cache, wrote 93 thumbnails again, and reported the same shortfall next run).
+        # Treat it like a regenerate for the cache: re-extract from the source.
+        rebuilding_after_check = bool(audited_bad)
+        if generation_lock is not None and not regenerate and not rebuilding_after_check:
             # Per-path lock so simultaneous webhook fires for the same
             # canonical path serialise. The first thread generates; the
             # rest wait, then re-check the cache and hit it.
