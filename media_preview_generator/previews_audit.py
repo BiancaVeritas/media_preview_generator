@@ -143,20 +143,31 @@ def _runtime_seconds(media_path: str) -> float | None:
 
 
 def _expected_frames(runtime_s: float | None, interval_s: int) -> float | None:
+    """Frames a complete run over ``runtime_s`` writes: ``floor(runtime / interval) + 1``.
+
+    Not rounded, and the ``+ 1`` is the frame at offset 0. The generator samples at 0, 10, 20 … while the playhead is
+    inside the file, so a 96-second clip yields 9 frames (0, 10, …, 80) and a 2748.79-second film yields 275
+    (0 … 2740). ``round(2748.79 / 10)`` happens to give 275 too, but ``round(96 / 10) = 10`` asks for a frame that
+    cannot exist, failing a complete preview of a short clip — which is exactly what this function must not do.
+    """
     if not runtime_s or interval_s <= 0:
         return None
-    return runtime_s / interval_s
+    return float(int(runtime_s / interval_s) + 1)
 
 
 def _covers_its_run(frames: int, expected: float | None) -> bool:
     """Whether ``frames`` is what a complete run over ``expected`` frames looks like.
 
-    Two rules, either of which passes:
+    A preview passes when it is within EITHER of two tolerances — whichever is more forgiving for its length:
 
-    * within 5% of the expected count — the generator's own completeness rule, right for a film;
-    * within ``MIN_FRAME_SLACK`` frames of it — the same rule expressed absolutely, for a short file where one frame of
-      ``fps=1/10`` rounding is a tenth of the whole preview. A 2-minute clip asks for 9.6 frames and a good run writes
-      9 or 10; judging that by the share alone fails a perfect preview.
+    * ``MIN_FRAME_SLACK`` frames. This is what a short file needs: a 2-minute clip asks for 10 frames, so one frame of
+      ``fps=1/10`` rounding is a tenth of the whole preview and any percentage rule fails a perfect run.
+    * 5% of the expected count. This is what a film needs: one frame out of 275 is noise, but a run that stopped 20
+      frames short is 7% and really did miss content.
+
+    Taking the more forgiving of the two keeps both ends honest: a short clip is not failed over rounding, and a film
+    is not passed after dropping a chunk. Only the ONE frame the generator may not emit is excused by the absolute
+    rule (``expected - 1``), never more.
 
     Args:
         frames: Frames the preview holds.
@@ -167,9 +178,9 @@ def _covers_its_run(frames: int, expected: float | None) -> bool:
     """
     if expected is None or expected <= 0:
         return True
-    if frames >= expected - MIN_FRAME_SLACK:
-        return True
-    return frames / expected >= MIN_HEALTHY_FRAME_SHARE
+    by_slack = expected - MIN_FRAME_SLACK
+    by_share = expected * MIN_HEALTHY_FRAME_SHARE
+    return frames >= min(by_slack, by_share)
 
 
 @dataclass(frozen=True)

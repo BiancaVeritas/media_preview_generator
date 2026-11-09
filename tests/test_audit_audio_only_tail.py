@@ -178,3 +178,52 @@ def test_both_ends_come_from_a_single_probe(tmp_path, monkeypatch):
     assert len(calls) == 1, "the two stream ends must come from one ffprobe run"
     assert "-select_streams" not in calls[0], "a comma list is rejected by ffprobe"
     assert "packet=stream_index,pts_time" in calls[0]
+
+
+# --- frame counting: no rounding, and a short clip gets a frame of slack ---------------------------
+
+
+def test_the_expected_count_is_the_frames_the_sampler_really_writes():
+    """``fps=1/10`` samples at 0, 10, 20 … so the count is ``floor(runtime/interval) + 1`` — no rounding up."""
+    from media_preview_generator.previews_audit import _expected_frames
+
+    # 96s samples at 0,10,...,90 -> 10 frames (round(9.6) also gives 10, but for the wrong reason)
+    assert _expected_frames(96.0, 10) == 10.0
+    # 100s samples at 0,10,...,100 -> 11 frames; round(10.0) would say 10 and undercount by one
+    assert _expected_frames(100.0, 10) == 11.0
+    # 95.99s: the 100th second never arrives, so 0..90 -> 10 frames
+    assert _expected_frames(95.99, 10) == 10.0
+    assert _expected_frames(2748.79, 10) == 275.0
+
+
+def test_a_short_clip_is_judged_by_frames_not_by_share(tmp_path, monkeypatch, media):
+    """9 of 10 frames is 90% — a fail by share, but the sampler may not emit the tenth."""
+    source = media()
+    preview = _write_bif(tmp_path / "film-320-10.bif", 9)
+    monkeypatch.setattr(
+        "media_preview_generator.previews_audit._probe_stream_ends", lambda _p: None
+    )
+
+    assert check_preview(source, str(preview), runtime_s=96.0) is None
+
+
+def test_a_short_clip_missing_two_frames_is_reported(tmp_path, monkeypatch, media):
+    """Only the one frame the generator may not emit is excused; two frames is content that was not read."""
+    source = media()
+    preview = _write_bif(tmp_path / "film-320-10.bif", 8)
+    monkeypatch.setattr(
+        "media_preview_generator.previews_audit._probe_stream_ends", lambda _p: None
+    )
+
+    assert check_preview(source, str(preview), runtime_s=96.0) is not None
+
+
+def test_a_film_still_allows_five_percent(tmp_path, monkeypatch, media):
+    """The frame slack must not tighten the long-file rule: 5% of a 46-minute film is 14 frames."""
+    source = media()
+    preview = _write_bif(tmp_path / "film-320-10.bif", 262)
+    monkeypatch.setattr(
+        "media_preview_generator.previews_audit._probe_stream_ends", lambda _p: None
+    )
+
+    assert check_preview(source, str(preview), runtime_s=2748.79) is None

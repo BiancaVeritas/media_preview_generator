@@ -57,7 +57,7 @@ def test_a_one_frame_preview_of_a_long_film_is_reported(tmp_path, monkeypatch, m
 
     assert problem is not None
     assert problem.frames == 1
-    assert problem.expected_frames == pytest.approx(240)
+    assert problem.expected_frames == pytest.approx(241)
 
 
 def test_a_complete_preview_passes(tmp_path, monkeypatch, media):
@@ -169,7 +169,7 @@ def test_a_known_runtime_is_used_without_probing(tmp_path, monkeypatch, media):
 
     problem = check_preview(str(source), str(preview), runtime_s=2400)
 
-    assert problem is not None and problem.expected_frames == pytest.approx(240)
+    assert problem is not None and problem.expected_frames == pytest.approx(241)
 
 
 def test_a_good_preview_with_a_known_runtime_passes(tmp_path, monkeypatch, media):
