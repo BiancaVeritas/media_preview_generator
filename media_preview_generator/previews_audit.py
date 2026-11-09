@@ -18,6 +18,7 @@ which regenerates only the files this reports.
 from __future__ import annotations
 
 import os
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -56,6 +57,12 @@ MIN_AUDIT_DURATION_S = 60
 #: the 1–7 frames a run that died after the opening leaves behind. Guards the case where a .strm HTTP source returns
 #: 403 (no runtime at all) or serves just the header (ffprobe reports a few seconds).
 MIN_PLAUSIBLE_COVERAGE_S = 900
+#: How much longer the audio may run past the video before the tail is treated as audio-only (an ED/outro playing over
+#: a still or a fade). Under this, video and audio end together as usual, so a short preview really is short.
+AUDIO_ONLY_TAIL_MIN_S = 60
+
+#: How long ffprobe may take to read each stream's last packet when deciding why a preview is short.
+STREAM_END_PROBE_TIMEOUT_S = 120
 
 
 @dataclass(frozen=True)
@@ -128,6 +135,68 @@ def _expected_frames(runtime_s: float | None, interval_s: int) -> float | None:
     if not runtime_s or interval_s <= 0:
         return None
     return runtime_s / interval_s
+
+
+def _video_ends_before_audio(media_path: str) -> float | None:
+    """The video's real end when the file's tail is audio-only; None when video and audio end together.
+
+    Plenty of releases end with an outro or ED playing over a fade to black, so the video stream stops minutes before
+    the container does. Judging such a file by the container's duration demands thumbnails for a stretch that has no
+    picture to make them from, so its preview can never satisfy the check and gets rebuilt on every run, forever.
+
+    ONE ffprobe run answers both questions: it lists every stream's packets with their stream index, so the video's
+    and the audio's last timestamps come from the same pass. That matters for a ``.strm`` cloud link, where every
+    extra call is another HTTP request against a share that may be throttling.
+
+    Returns:
+        The video's end in seconds when the audio runs on well past it (the file is fine; measure it by its video), or
+        None when they end together (the runtime is the truth) or either end can't be read.
+    """
+    try:
+        source = media_input(media_path)
+    except StrmError:
+        # An unreachable .strm has nothing to measure; the caller falls back to reporting the preview as short.
+        return None
+    # No -select_streams: it takes one specifier (``v:0,a:0`` is rejected), and asking for every stream costs nothing
+    # here because the output is only packet timestamps.
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "packet=stream_index,pts_time",
+        "-of",
+        "csv=p=0",
+        source,
+    ]
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=STREAM_END_PROBE_TIMEOUT_S, check=False
+        )
+    except (subprocess.SubprocessError, OSError):
+        return None
+    if proc.returncode != 0:
+        return None
+    ends: dict[str, float] = {}
+    for line in proc.stdout.splitlines():
+        parts = [part.strip() for part in line.strip().split(",")]
+        if len(parts) < 2 or parts[0] in ("", "N/A") or parts[1] in ("", "N/A"):
+            continue
+        try:
+            pts = float(parts[1])
+        except ValueError:
+            continue
+        index = parts[0]
+        if pts > ends.get(index, float("-inf")):
+            ends[index] = pts
+    if not ends:
+        return None
+    # Stream indices, not positions: pick the video (lowest index that isn't the audio) and the audio by its codec.
+    video_end = ends.get("0")
+    audio_end = max((pts for index, pts in ends.items() if index != "0"), default=None)
+    if video_end is None or audio_end is None:
+        return None
+    return video_end if audio_end - video_end > AUDIO_ONLY_TAIL_MIN_S else None
 
 
 def _interval_from_name(preview: Path, default: int) -> int:
@@ -241,6 +310,29 @@ def check_preview(
         )
     if share >= MIN_HEALTHY_FRAME_SHARE and shortfall_s <= SHORTFALL_TOLERANCE_S:
         return None
+    # Short by the runtime, but is the file? An outro or ED over a fade stops the video stream minutes before the
+    # container ends; demanding thumbnails for that stretch asks for pictures that don't exist, so the preview can
+    # never satisfy the check and is rebuilt on every run. Only a file that already looks short pays for this probe:
+    # it reads each stream's last packet (a seek and a small read), never the whole file.
+    video_only_end = _video_ends_before_audio(media_path)
+    if video_only_end is not None:
+        video_expected = _expected_frames(video_only_end, interval_s)
+        video_covered = metadata.frame_count * interval_s
+        if (
+            video_expected is not None
+            and metadata.frame_count / video_expected >= MIN_HEALTHY_FRAME_SHARE
+            and video_only_end - video_covered <= SHORTFALL_TOLERANCE_S
+        ):
+            logger.info(
+                "Preview check: {} covers the picture ({} of {} frames for {:.0f} min of video); the file's last "
+                "{:.0f} min is audio only, so its preview is complete",
+                Path(media_path).name,
+                metadata.frame_count,
+                f"{video_expected:.0f}",
+                video_only_end / 60,
+                (runtime_s - video_only_end) / 60,
+            )
+            return None
     return PreviewProblem(
         media_path=media_path,
         preview_path=preview_path,
