@@ -963,6 +963,17 @@ class JobDispatcher:
             self._max_checks = self._resolve_scan_workers(config)
             self._check_pool_started = True
             logger.info("Dispatcher: checking enabled ({} max in-flight)", self._max_checks)
+            if getattr(config, "audit_existing", False):
+                # Say the sweep is a preview audit, so the job log shows the mode and how much detail to expect.
+                logger.info(
+                    "Preview check enabled: every existing .bif is measured against its video; a wrong one is "
+                    "rebuilt in this run.{}",
+                    (
+                        " Every verdict is logged."
+                        if os.environ.get("PREVIEW_AUDIT_VERBOSE", "").strip().lower() not in ("", "0", "false", "no")
+                        else " Set PREVIEW_AUDIT_VERBOSE=1 to log each file's verdict, including the ones that pass."
+                    ),
+                )
 
     def cancel_job(self, job_id: str) -> None:
         """Cancel a job's remaining items in the dispatch queue."""

@@ -233,6 +233,15 @@ def _emby_sidecar_sizes(registry: ServerRegistry) -> frozenset[tuple[int, int]]:
     return frozenset(sizes)
 
 
+def audit_verbose() -> bool:
+    """Whether every preview the check passes is logged, not just the ones it flags.
+
+    Off by default: a whole-library sweep would print one line per file (thousands), burying the findings. Set
+    ``PREVIEW_AUDIT_VERBOSE=1`` to see each file's verdict as the sweep reaches it, including the ones that passed.
+    """
+    return os.environ.get("PREVIEW_AUDIT_VERBOSE", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _adapter_for_server(
     server_config: ServerConfig, emby_sizes: frozenset[tuple[int, int]] = frozenset()
 ) -> OutputAdapter | None:
@@ -1997,6 +2006,7 @@ def _process_canonical_path_previews(
 
         checked = 0
         broken = 0
+        no_preview = 0
         for server, adapter, item_id_hint in publishers:
             try:
                 item_id = resolve_item_id(server, item_id_hint)
@@ -2033,15 +2043,29 @@ def _process_canonical_path_previews(
                     "Preview check: {} is wrong ({}); rebuilding it in this run", output, found.reason
                 )
         if checked == 0:
-            logger.debug("Preview check: {} has no preview yet, so this run generates one", canonical_path)
+            no_preview += 1
+            logger.info("Preview check: {} has no preview yet, so this run generates one", canonical_path)
         elif broken == 0:
-            logger.debug("Preview check: the preview for {} is sound; it is left as it is", canonical_path)
+            logger.log(
+                "INFO" if audit_verbose() else "DEBUG",
+                "Preview check: {} is sound ({} file(s) checked); left as it is",
+                os.path.basename(canonical_path),
+                checked,
+            )
         else:
             logger.info(
                 "Preview check: {} of {} preview file(s) for {} were wrong and are being rebuilt",
                 broken,
                 checked,
                 os.path.basename(canonical_path),
+            )
+        if checked or no_preview:
+            logger.debug(
+                "Preview check: {} done ({} preview file(s) measured, {} wrong, {} without a preview)",
+                os.path.basename(canonical_path),
+                checked,
+                broken,
+                no_preview,
             )
 
     if not regenerate:
