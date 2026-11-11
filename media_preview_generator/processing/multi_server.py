@@ -1993,7 +1993,7 @@ def _process_canonical_path_previews(
     # The previews this run measured and found wrong; see the block below, which fills it.
     audited_bad: set[str] = set()
     if audit_existing:
-        from ..previews_audit import check_preview
+        from ..previews_audit import inspect_preview
 
         checked = 0
         broken = 0
@@ -2019,27 +2019,29 @@ def _process_canonical_path_previews(
                 if output.suffix.lower() != ".bif" or not output.exists():
                     continue
                 checked += 1
-                found = check_preview(
+                verdict = inspect_preview(
                     canonical_path,
                     str(output),
                     default_interval_s=probe_frame_interval,
                     runtime_s=runtime_s,
                 )
-                if found is None:
+                # Every verdict carries the numbers behind it — runtime, the frame count that implies, the frames the
+                # BIF really holds and the difference — so a pass is distinguishable from a file never looked at.
+                if verdict.passed:
+                    logger.info("Preview check: {} is sound ({}); left as it is", output, verdict.summary())
                     continue
                 broken += 1
                 audited_bad.add(str(output))
                 logger.info(
-                    "Preview check: {} is wrong ({}); rebuilding it in this run", output, found.reason
+                    "Preview check: {} is wrong ({}); measured {}; rebuilding it in this run",
+                    output,
+                    verdict.problem.reason,
+                    verdict.summary(),
                 )
         if checked == 0:
             logger.info("Preview check: {} has no preview yet, so this run generates one", canonical_path)
         elif broken == 0:
-            logger.info(
-                "Preview check: {} is sound ({} file(s) checked); left as it is",
-                os.path.basename(canonical_path),
-                checked,
-            )
+            pass  # each file's own line already said it passed, with the numbers
         else:
             logger.info(
                 "Preview check: {} of {} preview file(s) for {} were wrong and are being rebuilt",

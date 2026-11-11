@@ -97,6 +97,58 @@ class PreviewProblem:
     expected_frames: float | None
 
 
+@dataclass(frozen=True)
+class PreviewVerdict:
+    """What one check measured, whether or not the preview passed.
+
+    ``check_preview`` returns only the problem (or None), which is all a caller deciding what to rebuild needs. That
+    loses the numbers on the way out, so the job log could not show why a preview was accepted. This carries them.
+
+    Attributes:
+        problem: Why the preview can't be right, or None when it passed.
+        frames: Frames the preview holds.
+        interval_s: Seconds between the preview's frames.
+        covered_s: How much of the video those frames cover (``frames * interval_s``).
+        runtime_s: The runtime the verdict was judged against.
+        expected_frames: Frames a complete run of that runtime writes.
+        runtime_source: Where ``runtime_s`` came from ("record", "video stream", or "unknown").
+    """
+
+    problem: PreviewProblem | None
+    frames: int
+    interval_s: int
+    covered_s: float
+    runtime_s: float | None
+    expected_frames: float | None
+    runtime_source: str
+
+    @property
+    def passed(self) -> bool:
+        return self.problem is None
+
+    def summary(self) -> str:
+        """One line with every number the decision used, for the job log.
+
+        Duration is printed as ``m:ss`` so a 23-second clip does not read as "0.4 min", and the difference is signed:
+        a complete preview sits at or one frame above the expected count (``fps=1/10`` may emit the frame at the very
+        end), which ``-0``/``+1`` shows at a glance.
+        """
+        if self.runtime_s is None:
+            return f"{self.frames} frames covering {_clock(self.covered_s)}, no runtime readable"
+        expected = self.expected_frames or 0.0
+        diff = self.frames - expected
+        return (
+            f"{self.frames} frames covering {_clock(self.covered_s)} vs {expected:.0f} expected "
+            f"for {_clock(self.runtime_s)} of video ({self.runtime_source}); {diff:+.0f} frames"
+        )
+
+
+def _clock(seconds: float) -> str:
+    """``1:23.4`` for a number of seconds, so short clips read naturally in a log line."""
+    minutes, rest = divmod(max(0.0, float(seconds)), 60.0)
+    return f"{int(minutes)}:{rest:04.1f}"
+
+
 def _probe_runtime_once(media_path: str) -> float | None:
     """One attempt at reading the runtime; None when this answer is unusable."""
     from .processing.generator import read_media_info
@@ -265,32 +317,95 @@ def check_preview(
     Returns:
         The problem, or None when the preview holds a plausible number of frames.
     """
+    verdict = inspect_preview(
+        media_path,
+        preview_path,
+        default_interval_s=default_interval_s,
+        runtime_s=runtime_s,
+    )
+    return verdict.problem
+
+
+def inspect_preview(
+    media_path: str,
+    preview_path: str,
+    *,
+    default_interval_s: int = 10,
+    runtime_s: float | None = None,
+) -> PreviewVerdict:
+    """Measure one preview against its source and report every number the decision used.
+
+    ``check_preview`` answers "is this wrong?"; this answers "what did we see?", so the job log can print the runtime,
+    the frame count it implies, the frames actually present and the difference between them — including for a preview
+    that passed. A passing preview is otherwise indistinguishable from one that was never looked at.
+
+    Args:
+        media_path: The library file the preview belongs to.
+        preview_path: The ``.bif`` to check.
+        default_interval_s: The thumbnail interval to assume when the file name doesn't state one.
+        runtime_s: A runtime the caller already knows; see :func:`check_preview`.
+
+    Returns:
+        The verdict: the problem (or None) plus the measurements behind it.
+    """
     preview = Path(preview_path)
     try:
         metadata = read_bif_metadata(str(preview))
     except (OSError, ValueError) as exc:
-        return PreviewProblem(
-            media_path=media_path,
-            preview_path=preview_path,
-            reason=f"预览文件无法读取：{exc}",
+        return PreviewVerdict(
+            problem=PreviewProblem(
+                media_path=media_path,
+                preview_path=preview_path,
+                reason=f"预览文件无法读取：{exc}",
+                frames=0,
+                expected_frames=None,
+            ),
             frames=0,
+            interval_s=max(1, default_interval_s),
+            covered_s=0.0,
+            runtime_s=None,
             expected_frames=None,
+            runtime_source="unknown",
         )
     if metadata.frame_count <= 0:
-        return PreviewProblem(
-            media_path=media_path,
-            preview_path=preview_path,
-            reason="预览文件是空的（0 帧）",
+        return PreviewVerdict(
+            problem=PreviewProblem(
+                media_path=media_path,
+                preview_path=preview_path,
+                reason="预览文件是空的（0 帧）",
+                frames=0,
+                expected_frames=None,
+            ),
             frames=0,
+            interval_s=max(1, default_interval_s),
+            covered_s=0.0,
+            runtime_s=None,
             expected_frames=None,
+            runtime_source="unknown",
         )
 
     interval_s = max(1, round((metadata.frame_interval_ms or default_interval_s * 1000) / 1000))
+    covered_s = metadata.frame_count * interval_s
+    frames = metadata.frame_count
+
+    def verdict(problem: PreviewProblem | None, judged_runtime: float | None, source: str) -> PreviewVerdict:
+        return PreviewVerdict(
+            problem=problem,
+            frames=frames,
+            interval_s=interval_s,
+            covered_s=covered_s,
+            runtime_s=judged_runtime,
+            expected_frames=_expected_frames(judged_runtime, interval_s),
+            runtime_source=source,
+        )
+
     # A known runtime (the media server's own record, or the <name>-mediainfo.json StrmAssistant already wrote) wins:
     # it costs no network request, so a cloud share is never probed repeatedly. Only when there is no known runtime do
     # we read the real .strm URL ourselves — with retries, since that link is what can 403 or serve just the opening.
-    if runtime_s is None or runtime_s <= 0:
+    from_record = runtime_s is not None and runtime_s > 0
+    if not from_record:
         runtime_s = _runtime_seconds(media_path)
+    source = "record" if from_record else "probe"
     expected = _expected_frames(runtime_s, interval_s)
     if expected is None or runtime_s is None:
         # No runtime from the record or ffprobe. Rather than guessing from the frame count (a real 7-second clip and a
@@ -299,39 +414,46 @@ def check_preview(
         # back to reporting a preview that covers just the opening.
         video_end = _probe_video_end(media_path)
         video_expected = _expected_frames(video_end, interval_s) if video_end is not None else None
-        if video_expected is not None and _covers_its_run(metadata.frame_count, video_expected):
-            return None
-        covered_s = metadata.frame_count * interval_s
-        return PreviewProblem(
-            media_path=media_path,
-            preview_path=preview_path,
-            reason=(
-                f"只有 {metadata.frame_count} 张缩略图（覆盖约 {covered_s / 60:.0f} 分钟），"
-                f"且读不到视频时长（网络源可能拒绝访问）；预览图只覆盖了开头，无法对应正常长度的视频"
+        if video_expected is not None and _covers_its_run(frames, video_expected):
+            return verdict(None, video_end, "video stream")
+        return verdict(
+            PreviewProblem(
+                media_path=media_path,
+                preview_path=preview_path,
+                reason=(
+                    f"只有 {frames} 张缩略图（覆盖约 {covered_s / 60:.0f} 分钟），"
+                    f"且读不到视频时长（网络源可能拒绝访问）；预览图只覆盖了开头，无法对应正常长度的视频"
+                ),
+                frames=frames,
+                expected_frames=None,
             ),
-            frames=metadata.frame_count,
-            expected_frames=None,
+            video_end,
+            "video stream" if video_end is not None else "unknown",
         )
-    covered_s = metadata.frame_count * interval_s
+
     shortfall_s = runtime_s - covered_s
-    share = metadata.frame_count / expected
+    share = frames / expected
     if share > MAX_HEALTHY_FRAME_SHARE:
         # The BIF says its frames are one interval apart, but it holds far more of them than the file has intervals: it
         # was written by something that didn't know the runtime (every frame the same picture, at a fraction of the
         # stated interval) or at a different interval than its name claims.
-        return PreviewProblem(
-            media_path=media_path,
-            preview_path=preview_path,
-            reason=(
-                f"缩略图数量异常：{metadata.frame_count} 张（{metadata.file_size / 1024 / 1024:.0f} MB），"
-                f"约为视频时长 {runtime_s / 60:.0f} 分钟所需 {expected:.0f} 张的 {share:.0%}，"
-                f"超出正常范围（可能是旧版 FFmpeg 读不到时长，一直重复同一张图）"
+        return verdict(
+            PreviewProblem(
+                media_path=media_path,
+                preview_path=preview_path,
+                reason=(
+                    f"缩略图数量异常：{frames} 张（{metadata.file_size / 1024 / 1024:.0f} MB），"
+                    f"约为视频时长 {runtime_s / 60:.0f} 分钟所需 {expected:.0f} 张的 {share:.0%}，"
+                    f"超出正常范围（可能是旧版 FFmpeg 读不到时长，一直重复同一张图）"
+                ),
+                frames=frames,
+                expected_frames=expected,
             ),
-            frames=metadata.frame_count,
-            expected_frames=expected,
+            runtime_s,
+            source,
         )
-    if _covers_its_run(metadata.frame_count, expected) and shortfall_s <= SHORTFALL_TOLERANCE_S:
-        return None
+    if _covers_its_run(frames, expected) and shortfall_s <= SHORTFALL_TOLERANCE_S:
+        return verdict(None, runtime_s, source)
     # Short by the recorded runtime — but that figure describes the CONTAINER (sound included), while thumbnails are
     # made from the VIDEO. Two everyday things make the container longer than the picture, and neither is a fault:
     # an outro or ED over a fade, and a runtime record left behind by an older copy of the file. So before calling this
@@ -340,14 +462,11 @@ def check_preview(
     video_end = _probe_video_end(media_path)
     if video_end is not None:
         video_expected = _expected_frames(video_end, interval_s)
-        if (
-            _covers_its_run(metadata.frame_count, video_expected)
-            and video_end - covered_s <= SHORTFALL_TOLERANCE_S
-        ):
+        if _covers_its_run(frames, video_expected) and video_end - covered_s <= SHORTFALL_TOLERANCE_S:
             logger.info(
                 "Preview check: {} covers the picture ({} of {} frames for {:.0f} min of video); {}",
                 Path(media_path).name,
-                metadata.frame_count,
+                frames,
                 f"{video_expected:.0f}",
                 video_end / 60,
                 (
@@ -356,17 +475,21 @@ def check_preview(
                     else f"the recorded runtime of {runtime_s / 60:.0f} min is out of date"
                 ),
             )
-            return None
-    return PreviewProblem(
-        media_path=media_path,
-        preview_path=preview_path,
-        reason=(
-            f"只有 {metadata.frame_count} 张缩略图（约 {covered_s / 60:.0f} 分钟），"
-            f"而视频时长 {runtime_s / 60:.0f} 分钟，应有约 {expected:.0f} 张"
-            f"，缺 {shortfall_s / 60:.0f} 分钟"
+            return verdict(None, video_end, "video stream")
+    return verdict(
+        PreviewProblem(
+            media_path=media_path,
+            preview_path=preview_path,
+            reason=(
+                f"只有 {frames} 张缩略图（约 {covered_s / 60:.0f} 分钟），"
+                f"而视频时长 {runtime_s / 60:.0f} 分钟，应有约 {expected:.0f} 张"
+                f"，缺 {shortfall_s / 60:.0f} 分钟"
+            ),
+            frames=frames,
+            expected_frames=expected,
         ),
-        frames=metadata.frame_count,
-        expected_frames=expected,
+        runtime_s,
+        source,
     )
 
 
