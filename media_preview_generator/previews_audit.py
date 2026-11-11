@@ -326,6 +326,38 @@ def check_preview(
     return verdict.problem
 
 
+#: Bytes a BIF's header occupies; the index table and the JPEG payload follow it. Mirrors ``bif_reader._HEADER_SIZE``.
+_BIF_HEADER_SIZE = 64
+
+
+def _structure_problem(metadata) -> str | None:
+    """Whether the BIF's own byte layout is broken, in the words the UI shows; None when it holds together.
+
+    The index table lists, per frame, where its JPEG starts; those offsets must land inside the file. A run that died
+    mid-write (disk full, killed, a cloud link that dropped) can leave a complete index over half a payload, and the
+    frame COUNT then looks perfect — every count-based rule passes while the last thumbnails cannot be read at all.
+
+    Costs nothing beyond what :func:`read_bif_metadata` already parsed: no extra read, no network.
+    """
+    size = metadata.file_size
+    offsets = metadata.frame_offsets
+    if any(offset >= size for offset in offsets):
+        beyond = sum(1 for offset in offsets if offset >= size)
+        return (
+            f"预览文件不完整：{beyond} 张缩略图的数据位置超出文件末尾（文件仅 {size / 1024:.0f} KB），"
+            f"写入可能被中断"
+        )
+    if any(offset < _BIF_HEADER_SIZE for offset in offsets):
+        return f"预览文件索引损坏：有缩略图位置落在文件头部（{size / 1024:.0f} KB）"
+    if any(frame_size <= 0 for frame_size in metadata.frame_sizes):
+        bad = sum(1 for frame_size in metadata.frame_sizes if frame_size <= 0)
+        return f"预览文件索引错乱：{bad} 张缩略图的大小非正常值（可能被截断或写入中断）"
+    last_end = offsets[-1] + metadata.frame_sizes[-1] if offsets else 0
+    if last_end > size:
+        return f"预览文件末尾被截断：最后一张缩略图越出文件末尾 {last_end - size} 字节"
+    return None
+
+
 def inspect_preview(
     media_path: str,
     preview_path: str,
@@ -397,6 +429,23 @@ def inspect_preview(
             runtime_s=judged_runtime,
             expected_frames=_expected_frames(judged_runtime, interval_s),
             runtime_source=source,
+        )
+
+    # The file's own byte layout comes first: an index that points past the end of the file means some thumbnails
+    # cannot be read at all, and comparing frame counts over that would pass a preview the scrubber can't draw. This
+    # costs nothing (the index is already parsed) and no runtime is needed, so it answers before any probing.
+    structure = _structure_problem(metadata)
+    if structure is not None:
+        return verdict(
+            PreviewProblem(
+                media_path=media_path,
+                preview_path=preview_path,
+                reason=structure,
+                frames=frames,
+                expected_frames=None,
+            ),
+            None,
+            "unknown",
         )
 
     # A known runtime (the media server's own record, or the <name>-mediainfo.json StrmAssistant already wrote) wins:
