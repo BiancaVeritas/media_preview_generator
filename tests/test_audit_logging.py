@@ -118,3 +118,57 @@ def test_a_verdict_without_a_runtime_says_so():
     )
 
     assert "no runtime readable" in verdict.summary()
+
+
+def test_the_check_itself_prints_nothing(tmp_path, monkeypatch):
+    """One line per file: the caller logs the verdict, so ``inspect_preview`` must stay silent.
+
+    A second line carrying the same "Preview check:" prefix read as a second file being checked. Asserted on real
+    output rather than on the source text, since a comment can mention the prefix without logging anything.
+    """
+    import struct
+
+    from loguru import logger
+
+    from media_preview_generator.bif_reader import BIF_MAGIC
+    from media_preview_generator.previews_audit import inspect_preview
+
+    frames = 12
+    payload = b"\x11" * 200
+    first = 64 + (frames + 1) * 8
+    index = bytearray()
+    for number in range(frames):
+        index += struct.pack("<II", number, first + number * len(payload))
+    index += struct.pack("<II", 0xFFFFFFFF, first + frames * len(payload))
+    header = bytearray(BIF_MAGIC) + struct.pack("<III", 0, frames, 10_000)
+    header += b"\x00" * (64 - len(header))
+    bif = tmp_path / "film-320-10.bif"
+    bif.write_bytes(bytes(header) + bytes(index) + payload * frames)
+    source = tmp_path / "film.strm"
+    source.write_text("http://share.invalid/x", encoding="utf-8")
+
+    seen: list[str] = []
+    sink = logger.add(lambda m: seen.append(m.record["message"]), level="DEBUG")
+    try:
+        inspect_preview(str(source), str(bif), runtime_s=110)
+    finally:
+        logger.remove(sink)
+
+    assert not [line for line in seen if "Preview check:" in line]
+
+
+def test_a_file_judged_by_its_video_stream_still_names_the_source():
+    """The reason the internal line used to carry is visible in the caller's line instead."""
+    from media_preview_generator.previews_audit import PreviewVerdict
+
+    verdict = PreviewVerdict(
+        problem=None,
+        frames=94,
+        interval_s=10,
+        covered_s=940.0,
+        runtime_s=941.23,
+        expected_frames=95.0,
+        runtime_source="video stream",
+    )
+
+    assert "(video stream)" in verdict.summary()

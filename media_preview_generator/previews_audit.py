@@ -508,22 +508,13 @@ def inspect_preview(
     # an outro or ED over a fade, and a runtime record left behind by an older copy of the file. So before calling this
     # a failed run, ask the only question that matters: how many frames can the file's video actually yield? One
     # ffprobe read of the video stream answers it, and only a preview that already looks short pays for it.
+    #
+    # Nothing is logged here: the caller prints one line per file, and it names this reason through the verdict's
+    # runtime source ("video stream"). An extra line with the same "Preview check:" prefix read as a second file.
     video_end = _probe_video_end(media_path)
     if video_end is not None:
         video_expected = _expected_frames(video_end, interval_s)
         if _covers_its_run(frames, video_expected) and video_end - covered_s <= SHORTFALL_TOLERANCE_S:
-            logger.info(
-                "Preview check: {} covers the picture ({} of {} frames for {:.0f} min of video); {}",
-                Path(media_path).name,
-                frames,
-                f"{video_expected:.0f}",
-                video_end / 60,
-                (
-                    f"the file runs {max(0.0, runtime_s - video_end) / 60:.0f} min longer than its picture"
-                    if runtime_s - video_end > AUDIO_ONLY_TAIL_MIN_S
-                    else f"the recorded runtime of {runtime_s / 60:.0f} min is out of date"
-                ),
-            )
             return verdict(None, video_end, "video stream")
     return verdict(
         PreviewProblem(
