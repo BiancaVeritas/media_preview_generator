@@ -179,6 +179,13 @@ PUBLISH_MIN_FRAME_RATIO = 0.95
 # its opening and then nothing), so its frames are discarded and the file fails, visibly, instead of publishing a
 # one-frame preview that looks like a complete one.
 PUBLISH_CPU_MIN_FRAME_SHARE = 0.25
+#: Share of the expected thumbnails a run may miss before the drift warning speaks up.
+#:
+#: Two frames is the floor (see ``_warn_if_frame_count_disagrees_with_duration``): it absorbs ``fps``'s tail rounding
+#: and is noise on a feature film.  On a short file two frames is a large share of the content, so the tolerance is the
+#: larger of the two — a 98 s episode missing 2 of 9.8 frames is 20% and must say so, while a 2 h film missing 2 of 275
+#: is 0.7% and stays quiet.
+_DRIFT_WARN_FRAME_SHARE = 0.05
 # What FFmpeg itself exits with once it handled a SIGTERM or SIGINT: stopped from outside, wherever it was.
 FFMPEG_SIGNALLED_EXIT = 255
 # AVERROR(EIO): a read or write failed. A GPU decoder or an OpenCL filter that fails exits with it too; only the stderr
@@ -1640,6 +1647,39 @@ def is_a_share_of_a_run(count: int, expected: float | None) -> bool:
     return count / expected >= PUBLISH_CPU_MIN_FRAME_SHARE
 
 
+def _fast_path_lost_frames(count: int, duration_s: float | None, interval: float) -> bool:
+    """Whether a keyframe-only run stopped short of the thumbnails the runtime asks for.
+
+    ``-skip_frame:v nokey`` decodes keyframes only, so the run can write fewer thumbnails than the file has intervals
+    when a keyframe the sampler needed never came out of the decoder. Two everyday causes, both silent: an open-GOP
+    encode whose recovery points sit in the SEI (keyframe-only decode keeps the first and drops the rest), and a
+    cloud-backed ``.strm`` whose tail does not arrive. Neither leaves a trace the other checks catch — the exit code is
+    0, no two thumbnails are identical so the duplicate validator stays quiet, and the drift warning's flat two-frame
+    slack hides a fifth of a two-minute file.
+
+    Measured on a real 98.025 s episode at a 10 s interval: ffprobe flags 22 keyframes, the fast path decodes 21 of
+    them (88.72 s never arrives), and the run writes 8 thumbnails ending at 70 s where a full decode writes 10 ending
+    at 90 s.
+
+    The yardstick is the one :func:`media_preview_generator.previews_audit._covers_its_run` uses to judge a finished
+    preview — ``expected - 1``, the one frame ``fps`` may not emit — so the run and the audit that inspects it agree on
+    what "complete" means instead of talking past each other.
+
+    Args:
+        count: Thumbnails the keyframe-only run wrote.
+        duration_s: The file's runtime in seconds, or None when it is unknown.
+        interval: Seconds between thumbnails.
+
+    Returns:
+        True when a full decode is worth running: the keyframe-only pass lost more than the sampler's own rounding.
+    """
+    if not duration_s or duration_s <= 0 or interval <= 0:
+        # Nothing states how many thumbnails the file should have, so nothing says this run is short.
+        return False
+    expected = duration_s / interval
+    return count < expected - 1
+
+
 def _warn_if_frame_count_disagrees_with_duration(
     video_file: str,
     output_folder: str,
@@ -1674,9 +1714,20 @@ def _warn_if_frame_count_disagrees_with_duration(
 
     interval = config.plex_bif_frame_interval
     expected = duration_s / interval
-    # Two intervals of slack absorbs the usual rounding (fps=…:round=up emits
-    # a final frame at the tail) without hiding a real mismatch.
-    if expected > 0 and abs(image_count - expected) > 2:
+    # "Close enough" is judged on EITHER an absolute or a relative tolerance, and exceeding either one speaks up:
+    #
+    #   * two frames: absorbs the usual rounding (``fps=…:round=up`` may or may not emit the tail frame) and is noise
+    #     on a feature film.  ``274.9`` expected against ``273`` written is 1.9 frames — quiet.
+    #   * ``_DRIFT_WARN_FRAME_SHARE`` of the expected count: what covers a SHORT file, where two frames is a large
+    #     share of the whole preview.  A 98 s episode asks for 9.8 frames, so 8 written is 18% of the content missing
+    #     and used to pass in perfect silence — the flat two-frame rule sat at 1.8 and said nothing.
+    #
+    # The share never fires on the one frame ``fps`` simply didn't emit (``expected - 1``): that frame is rounding, and
+    # on a short file it is also a large share, so it is excluded explicitly before the share is compared.
+    short_frames = abs(image_count - expected) if expected > 0 else 0.0
+    drift_share = short_frames / expected if expected > 0 else 0.0
+    beyond_rounding = short_frames > 1
+    if expected > 0 and (short_frames > 2 or (beyond_rounding and drift_share > _DRIFT_WARN_FRAME_SHARE)):
         span_s = image_count * interval
         slack_s = 2 * interval
         video_end_s = _probe_video_end_seconds(video_file, duration_s) if image_count < expected else None
@@ -2662,25 +2713,47 @@ def generate_images(
         if retry_stderr_lines:
             stderr_lines_all.extend(retry_stderr_lines)
 
-    # Issue #238 — post-extract validation (belt-and-braces with the
-    # pre-flight probe above).  When the fast path produced output that
-    # looks healthy at the rc level but is full of duplicate thumbnails
-    # — which happens on the rare file whose keyframe spacing the probe
-    # cleared but whose mid-file GOP is actually too sparse — re-run
-    # without ``-skip_frame nokey``.  The check itself is cheap
-    # (~150 ms hashing 7K JPGs on warm cache) so it runs unconditionally
-    # whenever we just took the fast path.
+    # Issue #238 / fast-path frame loss — post-extract validation (belt-and-braces with the
+    # pre-flight probe above).  The fast path can produce output that looks healthy at the rc level and yet be wrong
+    # in one of two ways, and each has its own signature:
+    #
+    #   * duplicate thumbnails — the probe cleared the file but its mid-file GOP is actually too sparse, so the fps
+    #     sampler repeats the previous keyframe.  ``_has_duplicate_thumbnails`` catches this.
+    #   * too FEW thumbnails — a keyframe the sampler needed never came out of the decoder (an open-GOP encode whose
+    #     recovery points sit in the SEI, or a cloud-backed .strm whose tail never arrived), so the run stops short of
+    #     the runtime's last intervals.  Every thumbnail is unique, so the duplicate check says nothing about it;
+    #     ``_fast_path_lost_frames`` catches it.  Real case: 8 thumbnails ending at 70 s for a 98 s file that a full
+    #     decode previews in 10 ending at 90 s, rebuilt on every single run because nothing noticed.
+    #
+    # Either one means "the keyframe-only answer is not the file's answer", so both take the same remedy: re-run
+    # without ``-skip_frame nokey``.  The checks themselves are cheap (hashing 7K JPGs is ~150 ms, the frame count is a
+    # glob already done) and only run when we just took the fast path.
     if rc == 0 and use_skip_initial and not did_retry:
-        if _has_duplicate_thumbnails(output_folder):
+        fast_count = len(glob.glob(os.path.join(glob.escape(output_folder), "img-*.jpg")))
+        lost_frames = _fast_path_lost_frames(
+            fast_count, _video_duration_seconds(media_info), config.plex_bif_frame_interval
+        )
+        duplicates = _has_duplicate_thumbnails(output_folder)
+        if lost_frames or duplicates:
             if cancel_check and cancel_check():
                 raise CancellationError(f"Processing cancelled for {video_file}")
             did_retry = True
-            logger.warning(
-                "Re-running '{}' without snapshot reuse: the first pass produced duplicate "
-                "thumbnails even though the upfront check looked safe. This file has unusual "
-                "snapshot spacing — taking the slow path now.",
-                os.path.basename(video_file),
-            )
+            if lost_frames:
+                logger.warning(
+                    "Re-running '{}' without snapshot reuse: the first pass wrote {} thumbnails where the runtime "
+                    "asks for about {:.0f}, so part of the video never decoded. This file's snapshot frames don't "
+                    "come out of a keyframe-only read — taking the slow path now.",
+                    os.path.basename(video_file),
+                    fast_count,
+                    (_video_duration_seconds(media_info) or 0) / config.plex_bif_frame_interval,
+                )
+            else:
+                logger.warning(
+                    "Re-running '{}' without snapshot reuse: the first pass produced duplicate "
+                    "thumbnails even though the upfront check looked safe. This file has unusual "
+                    "snapshot spacing — taking the slow path now.",
+                    os.path.basename(video_file),
+                )
             _clean_output_images(output_folder)
             _report_slow_path()
             retry_rc, seconds, speed, retry_stderr_lines = _run_ffmpeg(use_skip=False, init_vulkan=use_libplacebo)

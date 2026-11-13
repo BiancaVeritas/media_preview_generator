@@ -794,6 +794,7 @@ def _wire_integration_mocks(
     probe_stdout,
     temp_dir,
     duration_ms=None,
+    frame_count=1,
 ):
     """Set up the boundary mocks so generate_images runs end-to-end.
 
@@ -805,6 +806,11 @@ def _wire_integration_mocks(
     without a usable duration, so the probe falls back to the whole-file
     scan; a real value long enough to sample puts it in sampled mode
     (discussion #283).
+
+    ``frame_count`` is how many ``img-*.jpg`` the run appears to have written.
+    The post-extract checks read that count, so a test that gives MediaInfo a
+    real runtime must also say how many thumbnails a COMPLETE run of it writes
+    — otherwise the frame-loss check correctly reports a short run and retries.
     """
     mock_run.return_value = MagicMock(returncode=0, stdout=probe_stdout, stderr="")
 
@@ -823,12 +829,12 @@ def _wire_integration_mocks(
     mock_file.return_value.readlines.return_value = []
     mock_detect.return_value = False
 
-    img1 = f"{temp_dir}/img-000001.jpg"
     ts1 = f"{temp_dir}/0000000000.jpg"
+    imgs = [f"{temp_dir}/img-{n:06d}.jpg" for n in range(1, frame_count + 1)]
 
     def glob_side_effect(pattern):
         if "img*.jpg" in pattern or "img-*.jpg" in pattern:
-            return [img1]
+            return imgs
         if pattern.endswith("*.jpg"):
             return [ts1]
         return []
@@ -1202,6 +1208,9 @@ def test_integration_known_duration_samples_instead_of_scanning(
         probe_stdout="600.000000,K_\n601.000000,K_\n3600.000000,K_\n3601.000000,K_\n",
         temp_dir=str(tmp_path),
         duration_ms=7200_000,
+        # A complete run of 120 min at a 2 s interval is 3600 thumbnails. The post-extract frame-loss
+        # check reads this count, so the mock has to look like a complete run, not a one-frame one.
+        frame_count=3600,
     )
 
     with loguru_caplog.at_level("INFO"):
